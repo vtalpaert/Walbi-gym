@@ -4,38 +4,13 @@
 #include "message.h"
 #include "slave.h"
 #include "parameters.h"
+#include "ServoBus.h"
 
 bool is_connected = false;  // True if the connection with the master is available
 
 SoftwareSerial mySerial(SOFT_RX, SOFT_TX);
 
-byte buf[10];
-
-byte LobotCheckSum()
-{
-  byte i;
-  unsigned int temp = 0;
-  for (i = 2; i < buf[3] + 2; i++) {
-    temp += buf[i];
-  }
-  temp = ~temp;
-  i = (byte)temp;
-  return i;
-}
-
-void moveServo(byte id, unsigned int position, unsigned int time)
-{
-  buf[0] = buf[1] = LOBOT_SERVO_FRAME_HEADER;
-  buf[2] = id;
-  buf[3] = 7;
-  buf[4] = 1; //LOBOT_SERVO_MOVE_TIME_WRITE
-  buf[5] = GET_LOW_BYTE(position);
-  buf[6] = GET_HIGH_BYTE(position);
-  buf[7] = GET_LOW_BYTE(time);
-  buf[8] = GET_HIGH_BYTE(time);
-  buf[9] = LobotCheckSum();
-  mySerial.write(buf, 10);
-}
+ServoBus bus(&mySerial, 0);
 
 void setup()
 {
@@ -71,10 +46,9 @@ void action()
     {
         for (uint8_t i=0; i<10; i++)
         {
-
             unsigned int position = read_i16();
             unsigned int speed = read_i16();
-            moveServo(i, position, speed);
+            bus.MoveTime(i, position, speed);
         }
     }
     else
