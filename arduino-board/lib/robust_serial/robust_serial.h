@@ -1,16 +1,5 @@
-#ifndef ARDUINO_SLAVE_H
-#define ARDUINO_SLAVE_H
-
-/*!
- * \brief Write here what the arduino should do between two messages
- */
-void update_state();
-
-/*!
- * \brief Read one byte from the serial and cast it to a Message
- * \return the message received
- */
-Message read_message();
+#ifndef ROBUST_SERIAL_H
+#define ROBUST_SERIAL_H
 
 /*!
  * \brief Wait until there are enough bytes in the buffer
@@ -47,12 +36,6 @@ int16_t read_i16();
 int32_t read_i32();
 
 /*!
- * \brief Send one message (one byte)
- * \param message type of message
- */
-void write_message(enum Message message);
-
-/*!
  * \brief Write one byte int to serial port (between -127 and 127)
  * \param num an int of one byte
  */
@@ -69,10 +52,5 @@ void write_i16(int16_t num);
  * \param num the number to send (−2,147,483,647, +2,147,483,647)
  */
 void write_i32(int32_t num);
-
-/*!
- * \brief Listen the serial and decode the message received
- */
-void get_messages_from_serial();
 
 #endif

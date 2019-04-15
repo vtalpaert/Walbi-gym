@@ -17,4 +17,15 @@ enum Message {
 
 typedef enum Message Message;
 
+Message read_message()
+{
+	return (Message) Serial.read();
+}
+
+void write_message(enum Message myMessage)
+{
+	uint8_t* Message = (uint8_t*) &myMessage;
+    Serial.write(Message, sizeof(uint8_t));
+}
+
 #endif
