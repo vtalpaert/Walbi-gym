@@ -421,7 +421,7 @@ void ServoBus::requestID(uint8_t id) {
   if (servoEvents[REPLY_ID]) {
     if (_read() == 7) {
       if (_checksum(input_buffer) == input_buffer[6]) {
-        servoEvents[REPLY_MOVETIME](input_buffer[2], REPLY_MOVETIME, (uint16_t)input_buffer[5], 0);
+        servoEvents[REPLY_ID](input_buffer[2], REPLY_ID, (uint16_t)input_buffer[5], 0);
       }
     }
   }

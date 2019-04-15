@@ -12,12 +12,31 @@ SoftwareSerial mySerial(SOFT_RX, SOFT_TX);
 
 ServoBus bus(&mySerial, 0);
 
+uint16_t positions[MOTOR_NB];
+uint16_t last_received_position;
+
+void receive_positions()
+{
+    for (uint8_t i = 0; i < MOTOR_NB; i++)
+    {
+        bus.requestPosition(MOTOR_IDS[i]);
+        positions[i] = last_received_position;
+    }
+}
+
+void receive_position(uint8_t id, uint8_t command, uint16_t param1, uint16_t param2)
+{
+    last_received_position = param1;
+}
+
 void setup()
 {
+    bus.setEventHandler(REPLY_POSITION, receive_position);
+
     // Init Serial
     Serial.begin(SERIAL_BAUD);
 
-    mySerial.begin(115200); // SoftwareSerial - connects Arduino to Debug Board serial pins (RX->TX, TX->RX, GND->GND)
+    mySerial.begin(SOFTWARE_SERIAL_BAUD); // SoftwareSerial - connects Arduino to Debug Board serial pins (RX->TX, TX->RX, GND->GND)
 
     // Wait until the arduino is connected to master
     while(!is_connected)
@@ -31,12 +50,6 @@ void setup()
 void loop()
 {
     get_messages_from_serial();
-    update_state();
-}
-
-void update_state()
-{
-
 }
 
 void action()
@@ -44,11 +57,11 @@ void action()
     Message message_received = read_message();
     if(message_received == ACTION)
     {
-        for (uint8_t i=0; i<10; i++)
+        for (uint8_t i = 0; i < MOTOR_NB; i++)
         {
-            unsigned int position = read_i16();
-            unsigned int speed = read_i16();
-            bus.MoveTime(i, position, speed);
+            int16_t position = read_i16();
+            int16_t span = read_i16();
+            bus.MoveTime(MOTOR_IDS[i], position, span);
         }
     }
     else
@@ -60,11 +73,11 @@ void action()
 
 void observation()
 {
+    receive_positions();
     write_message(OBSERVATION);
-    for (uint8_t i=0; i<10; i++)
+    for (uint8_t i = 0; i < MOTOR_NB; i++)
     {
-        int16_t position = 0;
-        write_i16(position);
+        write_i16(positions[i]);
     }
 }
 
