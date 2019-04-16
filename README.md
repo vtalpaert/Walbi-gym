@@ -13,7 +13,7 @@ python3 setup.py
 
 ### Gym environment
 
-You may create a Walbi Gym environment as usual:
+You may create a Walbi Gym environment as usual.
 ```python
 import gym
 import walbi_gym  # will register env
@@ -24,7 +24,7 @@ env = gym.make('Walbi-v0')
 
 Arduino Makefile only works with Linux/Mac Os systems: [https://github.com/sudar/Arduino-Makefile](https://github.com/sudar/Arduino-Makefile)
 
-Install Arduino Makefile.
+Install Arduino Makefile:
 ```bash
 sudo apt-get install arduino-mk
 ```
@@ -44,6 +44,8 @@ Explain how to connect parts
 
 ## Acknowledgments
 
-This project relies on the serial communication code by Antonin Raffin, as he wrote the [robust serial library](https://github.com/araffin/arduino-robust-serial).
+This project relies on the [serial communication code](https://github.com/araffin/arduino-robust-serial)
+by Antonin Raffin, as he wrote the [robust serial library](https://medium.com/@araffin/simple-and-robust-computer-arduino-serial-communication-f91b95596788).
 
-Walbi was [designed](https://create.arduino.cc/projecthub/the-inner-geek/walbi-the-walking-biped-8feacd) by [Release the Inner Geek](https://releasetheinnergeek.com/).
+Walbi was [designed](https://create.arduino.cc/projecthub/the-inner-geek/walbi-the-walking-biped-8feacd)
+by [Release the Inner Geek](https://releasetheinnergeek.com/).
