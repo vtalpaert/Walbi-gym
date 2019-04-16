@@ -37,6 +37,8 @@ class WalbiEnv(Env):
     }
     reward_scale = 1000
     reward_range = (-32.768, +32.767)  # linked to reward_scale
+    delay = 0.1
+    expect_or_raise_timeout = 1
 
     def __init__(self, serial_port=None, baudrate=115200):
         self.is_connected = False
@@ -54,7 +56,7 @@ class WalbiEnv(Env):
         n_messages_allowed = 3
         self._n_received_semaphore = threading.Semaphore(n_messages_allowed)
         # Lock for accessing serial file (to avoid reading and writing at the same time)
-        serial_lock = threading.Lock()
+        self.serial_lock = threading.Lock()
 
         # Event to notify threads that they should terminate
         self._exit_event = threading.Event()
@@ -62,8 +64,8 @@ class WalbiEnv(Env):
         print('Starting Communication Threads')
         # Threads for arduino communication
         self._threads = [
-            CommandThread(self, self.command_queue, self._exit_event, self._n_received_semaphore, serial_lock),
-            ListenerThread(self, self.f, self._exit_event, self._n_received_semaphore, serial_lock)
+            CommandThread(self, self.command_queue, self._exit_event, self._n_received_semaphore, self.serial_lock),
+            ListenerThread(self, self.f, self._exit_event, self._n_received_semaphore, self.serial_lock)
         ]
         for t in self._threads:
             t.start()
@@ -75,7 +77,7 @@ class WalbiEnv(Env):
     def _connect(self):
         # Initialize communication with Arduino
         while not self.is_connected:
-            print('Waiting for arduino...')
+            print('Waiting for Arduino...')
             write_message(self.f, Message.CONNECT)
             bytes_array = bytearray(self.f.read(1))
             if not bytes_array:
@@ -85,7 +87,7 @@ class WalbiEnv(Env):
             if byte in (Message.CONNECT.value, Message.ALREADY_CONNECTED.value):
                 self.is_connected = True
         print('Connected to Arduino')
-        time.sleep(0.1)
+        time.sleep(self.delay)
         self.received_queue.clear()
 
     def _handle_message(self, message):
@@ -116,9 +118,9 @@ class WalbiEnv(Env):
         if message != Message.OK:
             self.expect_or_raise(Message.OK)
 
-    def expect_or_raise(self, expected_message, timeout=1):
+    def expect_or_raise(self, expected_message):
         try:
-            message, param = self.received_queue.get(block=True, timeout=timeout)
+            message, param = self.received_queue.get(block=True, timeout=self.expect_or_raise_timeout)
         except queue.Empty:
             raise WalbiError('No message received within 1s (waiting for %s' % expected_message)
         if message != expected_message:
@@ -127,19 +129,19 @@ class WalbiEnv(Env):
 
     def reset(self):
         self.command_queue.put((Message.RESET, None))
-        time.sleep(0.1)
+        time.sleep(self.delay)
         self._observation()
         return self._obs
 
     def step(self, action):
         self.command_queue.put((Message.STEP, None))
-        time.sleep(0.1)
+        time.sleep(self.delay)
         self._action(action)
-        time.sleep(0.1)
+        time.sleep(self.delay)
         self._observation()
-        time.sleep(0.1)
+        time.sleep(self.delay)
         self._reward()
-        time.sleep(0.1)
+        time.sleep(self.delay)
         return self._obs, self._r, self._d, {}
 
     def _action(self, action):
@@ -156,11 +158,21 @@ class WalbiEnv(Env):
         self._obs = np.array(raw_obs)
         return self._obs
 
+    def _ask_observation(self):
+        self.command_queue.put((Message.OBSERVATION, None))
+        time.sleep(self.delay)
+        return self._observation()
+
     def _reward(self):
         raw_r, raw_d = self.expect_or_raise(Message.REWARD)
         self._r = raw_r / self.reward_range
         self._d = bool(raw_d)
         return self._r, self._d
+
+    def _ask_reward(self):
+        self.command_queue.put((Message.REWARD, None))
+        time.sleep(self.delay)
+        return self._reward()
 
     def render(self, mode='human'):
         """TODO"""
@@ -175,3 +187,4 @@ class WalbiEnv(Env):
             t.join()
         self.received_queue.clear()
         self.f.close()
+        self.serial_lock.release()

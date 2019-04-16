@@ -146,6 +146,11 @@ void get_messages_from_serial()
                     step();
                     break;
                 }
+                case OBSERVATION:
+                {
+                    observation();
+                    break;
+                }
                 // Unknown message
                 default:
                 {
