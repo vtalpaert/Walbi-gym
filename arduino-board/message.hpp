@@ -3,16 +3,17 @@
 
 // Define the messages that can be sent and received
 enum Message {
-    CONNECT = 0,
-    ALREADY_CONNECTED = 1,
-    RESET = 2,
-    STEP = 9,
-    ACTION = 3,
-    OBSERVATION = 4,
-    REWARD = 5,  // reward and termination
-    CLOSE = 6,
-    CONFIG = 7,
-    ERROR = 8,
+    OK = 1,  // acknowledge reception
+    CONNECT = 2,
+    ALREADY_CONNECTED = 3,
+    RESET = 4,
+    STEP = 5,
+    ACTION = 6,
+    OBSERVATION = 7,
+    REWARD = 8,  // send two values; reward and termination
+    CLOSE = 9,
+    CONFIG = 10,
+    ERROR = 11,
 };
 
 typedef enum Message Message;

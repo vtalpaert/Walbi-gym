@@ -14,7 +14,14 @@ ServoBus bus(&mySerial, 0);
 uint16_t positions[MOTOR_NB];
 uint16_t last_received_position;
 
-void receive_positions()
+void non_blocking_delay(unsigned long interval)
+{
+    unsigned long start_millis = millis();
+    while (millis() - start_millis < interval) { delay(10); }
+}
+
+
+void read_positions()
 {
     for (uint8_t i = 0; i < MOTOR_NB; i++)
     {
@@ -25,10 +32,26 @@ void receive_positions()
 
 void receive_position(uint8_t id, uint8_t command, uint16_t param1, uint16_t param2)
 {
+    (void)id;
+    (void)command;
+    (void)param2;
     last_received_position = param1;
 }
 
-void action()
+bool wait_acknowledge()
+{
+    non_blocking_delay(100);
+    Message message_received = read_message();
+    if(message_received != OK)
+    {
+        write_message(ERROR);
+        write_i8(2);
+        return false;
+    }
+    return true;
+}
+
+bool action()
 {
     Message message_received = read_message();
     if(message_received == ACTION)
@@ -39,31 +62,49 @@ void action()
             int16_t span = read_i16();
             bus.MoveTime(MOTOR_IDS[i], position, span);
         }
+        write_message(OK);
+        return true;
     }
     else
     {
         write_message(ERROR);
         write_i8(1);
+        return false;
     }
 }
 
-void observation()
+bool observation()
 {
-    receive_positions();
+    read_positions();
     write_message(OBSERVATION);
     for (uint8_t i = 0; i < MOTOR_NB; i++)
     {
         write_i16(positions[i]);
     }
+    return wait_acknowledge();
 }
 
-void reward()
+bool reward()
 {
     int16_t reward = 0;
     int8_t done = 0;
     write_message(REWARD);
     write_i16(reward);
     write_i8(done);
+    return wait_acknowledge();
+}
+
+bool step()
+{
+    write_message(OK);
+    if(action()) { if(observation()) { return reward(); } }
+    return false;
+}
+
+bool reset()
+{
+    write_message(OK);
+    return observation();
 }
 
 void get_messages_from_serial()
@@ -75,7 +116,7 @@ void get_messages_from_serial()
 
         if(message_received == CONNECT)
         {
-            // If the cards haven't say hello, check the connection
+            // If the cards haven't said hello, check the connection
             if(!is_connected)
             {
                 is_connected = true;
@@ -83,7 +124,7 @@ void get_messages_from_serial()
             }
             else
             {
-                // If we are already connected do not send "hello" to avoid infinite loop
+                // If we are already connected do not send "connect" to avoid infinite loop
                 write_message(ALREADY_CONNECTED);
             }
         }
@@ -97,14 +138,13 @@ void get_messages_from_serial()
             {
                 case RESET:
                 {
-                    observation();
+                    reset();
                     break;
                 }
                 case STEP:
                 {
-                    action();
-                    observation();
-                    reward();
+                    step();
+                    break;
                 }
                 // Unknown message
                 default:

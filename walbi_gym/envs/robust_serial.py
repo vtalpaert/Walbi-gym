@@ -2,6 +2,41 @@ from __future__ import print_function, division, unicode_literals, absolute_impo
 
 import struct
 
+from enum import IntEnum
+
+
+class Message(IntEnum):
+    """
+    Pre-defined messages
+    """
+    OK = 1
+    CONNECT = 2
+    ALREADY_CONNECTED = 3
+    RESET = 4
+    STEP = 5
+    ACTION = 6
+    OBSERVATION = 7
+    REWARD = 8  # reward and termination
+    CLOSE = 9
+    CONFIG = 10
+    ERROR = 11
+
+
+def read_message(f):
+    """
+    :param f: file handler or serial file
+    :return: (Message Enum Object)
+    """
+    return Message(read_i8(f))
+
+
+def write_message(f, message):
+    """
+    :param f: file handler or serial file
+    :param message: (Message Enum Object)
+    """
+    write_i8(f, message.value)
+
 
 def read_i8(f):
     """
