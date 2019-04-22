@@ -83,8 +83,8 @@ class ListenerThread(threading.Thread):
                     message = Message(byte)
                 except ValueError:
                     continue
-                if message == Message.OK:
-                    self.n_received_semaphore.release()
+                #if message == Message.OK:
+                #    self.n_received_semaphore.release()
                 self.parent._handle_message(message)
             time.sleep(rate)
         print("Listener Thread Exited")
