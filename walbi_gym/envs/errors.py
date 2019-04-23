@@ -14,15 +14,16 @@ class WalbiArduinoError(WalbiError):
     def __init__(self, code, *args):
         self.code = code
         message = ERROR_CODES[code] if code in ERROR_CODES else ERROR_CODES[-1]
-        super().__init__(message, *args)
+        super().__init__(message, code, *args)
 
 
 class WalbiTimeoutError(WalbiError):
-    def __init__(self, timeout, expecting, *args):
+    def __init__(self, timeout, expecting=(), *args):
         self.timeout = timeout
-        self.message = 'Nothing received within %fs (expecting %s)'\
-                       % (timeout, list(map(str, expecting)))
-        super().__init__(self.message, *args)
+        self.message = 'Nothing received within {} seconds'.format(timeout)
+        if expecting:
+            self.message += ' (expecting {!r})'.format(expecting)
+        super().__init__(self.message, timeout, *args)
 
 
 class WalbiUnexpectedMessageError(WalbiError):
