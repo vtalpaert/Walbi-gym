@@ -116,9 +116,12 @@ class WalbiEnv(Env):
         elif message == Message.CONFIG:
             raise NotImplementedError(str(message))
 
-    def put_command(self, message, param=None, delay: bool=True):
+    def put_command(self, message, param=None, delay: bool=True, expect_ok: bool=False):
         self._command_queue.put((message, param))
-        time.sleep(self.delay)
+        if delay:
+            time.sleep(self.delay)
+        if expect_ok:
+            self.expect_or_raise(Message.OK)
 
     def expect_or_raise(self, expected_message: Message):
         return self.expect_or_raise_list([expected_message])
@@ -139,14 +142,12 @@ class WalbiEnv(Env):
         return param
 
     def reset(self):
-        self.put_command(Message.RESET)
-        self.expect_or_raise(Message.OK)
+        self.put_command(Message.RESET, expect_ok=True)
         self._observation()
         return self._obs
 
     def step(self, action):
-        self.put_command(Message.STEP)
-        self.expect_or_raise(Message.OK)
+        self.put_command(Message.STEP, expect_ok=True)
         self._action(action)
         self._observation()
         self._reward()
@@ -167,7 +168,7 @@ class WalbiEnv(Env):
         return self._obs
 
     def _ask_observation(self):
-        self.put_command(Message.OBSERVATION)
+        self.put_command(Message.OBSERVATION, expect_ok=False)
         return self._observation()
 
     def _reward(self):
@@ -177,7 +178,7 @@ class WalbiEnv(Env):
         return self._r, self._d
 
     def _ask_reward(self):
-        self.put_command(Message.REWARD)
+        self.put_command(Message.REWARD, expect_ok=False)
         return self._reward()
 
     def render(self, mode='human'):
