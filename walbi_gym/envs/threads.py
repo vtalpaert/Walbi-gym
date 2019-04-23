@@ -13,58 +13,51 @@ rate = 1 / 2000  # 2000 Hz (limit the rate of communication with the arduino)
 class CommandThread(threading.Thread):
     """
     Thread that send messages to the arduino
-    it blocks if there no more send_token left (here it is the n_received_semaphore).
-    :param serial_file: (Serial object)
+    :param parent: will call _send_message on parent (WalbiEnv object)
     :param command_queue: (Queue)
     :param exit_event: (Threading.Event object)
-    :param n_received_semaphore: (threading.Semaphore)
     :param serial_lock: (threading.Lock)
     """
 
-    def __init__(self, parent, command_queue, exit_event, n_received_semaphore, serial_lock):
+    def __init__(self, parent, command_queue, exit_event, serial_lock):
         threading.Thread.__init__(self)
         self.deamon = True
         self.parent = weakref.proxy(parent)
         self.command_queue = command_queue
         self.exit_event = exit_event
-        self.n_received_semaphore = n_received_semaphore
         self.serial_lock = serial_lock
 
     def run(self):
         while not self.exit_event.is_set():
-            self.n_received_semaphore.acquire()
             if self.exit_event.is_set():
                 break
             try:
                 message, param = self.command_queue.get_nowait()
             except queue.Empty:
                 time.sleep(rate)
-                self.n_received_semaphore.release()
                 continue
 
             with self.serial_lock:
                 self.parent._send_message(message, param)
             time.sleep(rate)
-        print("Command Thread Exited")
+        print('Command Thread Exited')
 
 
 class ListenerThread(threading.Thread):
     """
     Thread that listen to the Arduino
     It is used to add send_tokens to the n_received_semaphore
-    :param serial_file: (Serial object)
+    :param parent: will call _handle_message on parent (WalbiEnv object)
     :param exit_event: (threading.Event object)
-    :param n_received_semaphore: (threading.Semaphore)
     :param serial_lock: (threading.Lock)
     """
 
-    def __init__(self, parent, serial_file, exit_event, n_received_semaphore, serial_lock):
+    def __init__(self, parent, serial_file, exit_event, serial_lock):
         threading.Thread.__init__(self)
         self.deamon = True
         self.parent = weakref.proxy(parent)
         self.serial_file = serial_file
         self.exit_event = exit_event
-        self.n_received_semaphore = n_received_semaphore
         self.serial_lock = serial_lock
 
     def run(self):
@@ -83,8 +76,6 @@ class ListenerThread(threading.Thread):
                     message = Message(byte)
                 except ValueError:
                     continue
-                #if message == Message.OK:
-                #    self.n_received_semaphore.release()
                 self.parent._handle_message(message)
             time.sleep(rate)
-        print("Listener Thread Exited")
+        print('Listener Thread Exited')
