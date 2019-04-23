@@ -7,10 +7,7 @@ from gym import Env, spaces
 from .robust_serial import *
 from .threads import CommandThread, ListenerThread
 from .utils import open_serial_port, constrain, CustomQueue, queue
-
-
-class WalbiError(IOError):
-    pass
+from .errors import *
 
 
 class WalbiEnv(Env):
@@ -30,8 +27,8 @@ class WalbiEnv(Env):
     }
     reward_scale = 1000
     reward_range = (-32.768, +32.767)  # linked to reward_scale
-    delay = 0.1
-    expect_or_raise_timeout = 2
+    delay = 0.1  # delay for a message to be sent
+    expect_or_raise_timeout = 1
     debug = False
 
     def __init__(self, serial_port=None, baudrate=115200):
@@ -67,12 +64,9 @@ class WalbiEnv(Env):
 
     def _connect(self):
         # Initialize communication with Arduino
-        time.sleep(self.delay)
         while not self.is_connected:
             print('Waiting for Arduino...')
             self.put_command(Message.CONNECT)
-            #self.command_queue.put((Message.CONNECT, None))
-            time.sleep(self.delay)
             try:
                 self.expect_or_raise_list((Message.CONNECT, Message.ALREADY_CONNECTED))
             except WalbiError:
@@ -80,9 +74,9 @@ class WalbiEnv(Env):
                 continue
             print('Connected to Arduino')
             self.is_connected = True
-        time.sleep(self.delay)
+        time.sleep(2 * self.delay)
         self._received_queue.clear()
-        try:
+        try:  # if we still receive CONNECT, send that we consider ourselves ALREADY_CONNECTED
             self.expect_or_raise(Message.CONNECT)
             self.put_command(Message.ALREADY_CONNECTED)
         except WalbiError:
@@ -91,6 +85,7 @@ class WalbiEnv(Env):
         self._received_queue.clear()
 
     def _handle_message(self, message):
+        # Only called by threads respecting our _serial_lock
         if self.debug:
             print(message, 'just in')
         if message == Message.OBSERVATION:
@@ -110,6 +105,7 @@ class WalbiEnv(Env):
             print('%s was not expected, ignored' % message)
 
     def _send_message(self, message, param):
+        # Only called by threads respecting our _serial_lock
         if self.debug:
             print('write', message)
         write_message(self.f, message)
@@ -120,8 +116,9 @@ class WalbiEnv(Env):
         elif message == Message.CONFIG:
             raise NotImplementedError(str(message))
 
-    def put_command(self, message, param=None):
+    def put_command(self, message, param=None, delay: bool=True):
         self._command_queue.put((message, param))
+        time.sleep(self.delay)
 
     def expect_or_raise(self, expected_message: Message):
         return self.expect_or_raise_list([expected_message])
@@ -131,35 +128,27 @@ class WalbiEnv(Env):
             print('expect', expected_messages)
         try:
             message, param = self._received_queue.get(block=True, timeout=self.expect_or_raise_timeout)
-        except queue.Empty:
-            raise WalbiError(
-                'Timeout: no message received within %fs (waiting for %s)'
-                % (self.expect_or_raise_timeout, list(map(str, expected_messages)))
-            )
+        except queue.Empty as e:
+            raise WalbiTimeoutError(self.expect_or_raise_timeout, expected_messages) from e
         if message == Message.ERROR:
-            raise WalbiError('Received %s code %i' % (message, param))
+            raise WalbiArduinoError(int(param))
         if message not in expected_messages:
-            raise WalbiError('Expected %s but got %s' % (expected_messages, message))
+            raise WalbiUnexpectedMessageError('Expected %s but got %s' % (expected_messages, message))
         if self.debug:
             print('got %s as expected (param %s)' % (message, str(param)))
         return param
 
     def reset(self):
         self.put_command(Message.RESET)
-        time.sleep(self.delay)
         self.expect_or_raise(Message.OK)
-        time.sleep(self.delay)
         self._observation()
         return self._obs
 
     def step(self, action):
         self.put_command(Message.STEP)
-        time.sleep(self.delay)
         self.expect_or_raise(Message.OK)
         self._action(action)
-        time.sleep(self.delay)
         self._observation()
-        time.sleep(self.delay)
         self._reward()
         return self._obs, self._r, self._d, {}
 
@@ -170,7 +159,7 @@ class WalbiEnv(Env):
             position = int(constrain(position_normalized, -1, 1, ranges[0][0], ranges[0][1]))
             span = int(constrain(speed_normalized, -1, 1, ranges[1][0], ranges[1][1]))
             int16_action.append((position, span))
-        self.put_command(Message.ACTION, int16_action)
+        self.put_command(Message.ACTION, param=int16_action)
 
     def _observation(self):
         raw_obs = self.expect_or_raise(Message.OBSERVATION)
@@ -179,7 +168,6 @@ class WalbiEnv(Env):
 
     def _ask_observation(self):
         self.put_command(Message.OBSERVATION)
-        time.sleep(self.delay)
         return self._observation()
 
     def _reward(self):
@@ -190,7 +178,6 @@ class WalbiEnv(Env):
 
     def _ask_reward(self):
         self.put_command(Message.REWARD)
-        time.sleep(self.delay)
         return self._reward()
 
     def render(self, mode='human'):
