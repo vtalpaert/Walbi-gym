@@ -1,3 +1,6 @@
+from gym.error import Error
+
+
 ERROR_CODES = {  # must be coherent with arduino-board/slave.cpp throws
     -1: 'UNKNOWN_ERROR_CODE',
     0: 'RECEIVED_UNKNOWN_MESSAGE',
@@ -6,7 +9,7 @@ ERROR_CODES = {  # must be coherent with arduino-board/slave.cpp throws
 }
 
 
-class WalbiError(ConnectionError):
+class WalbiError(Error):
     """Base class for WalbiEnv errors"""
 
 

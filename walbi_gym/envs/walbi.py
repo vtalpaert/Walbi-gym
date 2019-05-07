@@ -1,5 +1,6 @@
 import time
 import threading
+from typing import TypeVar, List, Tuple, Sequence
 
 import numpy as np
 from gym import Env, spaces
@@ -8,6 +9,9 @@ from .robust_serial import *
 from .threads import CommandThread, ListenerThread
 from .utils import open_serial_port, constrain, CustomQueue, queue
 from .errors import *
+
+
+DecimalList = TypeVar('DecimalList', np.ndarray, Sequence[float])
 
 
 class WalbiEnv(Env):
@@ -126,7 +130,7 @@ class WalbiEnv(Env):
     def expect_or_raise(self, expected_message: Message):
         return self.expect_or_raise_list([expected_message])
 
-    def expect_or_raise_list(self, expected_messages: (list, tuple)):
+    def expect_or_raise_list(self, expected_messages: Sequence):
         if self.debug:
             print('expect', expected_messages)
         try:
@@ -146,36 +150,54 @@ class WalbiEnv(Env):
         self._observation()
         return self._obs
 
-    def step(self, action):
+    def step(self, action: DecimalList):
         self.put_command(Message.STEP, expect_ok=True)
         self._action(action)
         self._observation()
         self._reward()
         return self._obs, self._r, self._d, {}
 
-    def _action(self, action):
+    def _action(self, action: DecimalList):
+        self._raw_action(self._convert_action_float_to_int(action))
+
+    def _convert_action_float_to_int(self, action: DecimalList) -> List[int]:
         int16_action = []
         for motor, ranges in self.motor_ranges.items():
             position_normalized, speed_normalized = action[motor]
             position = int(constrain(position_normalized, -1, 1, ranges[0][0], ranges[0][1]))
             span = int(constrain(speed_normalized, -1, 1, ranges[1][0], ranges[1][1]))
             int16_action.append((position, span))
+        return int16_action
+
+    def _raw_action(self, int16_action: Sequence[int]):
         self.put_command(Message.ACTION, param=int16_action)
 
     def _observation(self):
-        raw_obs = self.expect_or_raise(Message.OBSERVATION)
-        self._obs = np.array(raw_obs)
+        raw_obs = self._raw_observation()
+        self._obs = self._convert_obs_int_to_float(raw_obs)
         return self._obs
+
+    def _convert_obs_int_to_float(self, raw_obs: Sequence[int]) -> np.ndarray:
+        # TODO
+        return np.array(raw_obs)
+
+    def _raw_observation(self) -> List[int]:
+        return self.expect_or_raise(Message.OBSERVATION)
 
     def _ask_observation(self):
         self.put_command(Message.OBSERVATION, expect_ok=False)
         return self._observation()
 
-    def _reward(self):
-        raw_r, raw_d = self.expect_or_raise(Message.REWARD)
-        self._r = raw_r / self.reward_range
-        self._d = bool(raw_d)
+    def _reward(self) -> Tuple[float, bool]:
+        raw_r, raw_d = self._raw_reward()
+        self._r, self._d = self._convert_reward_int_to_types(raw_r, raw_d)
         return self._r, self._d
+
+    def _convert_reward_int_to_types(self, raw_reward: int, raw_termination: int) -> Tuple[float, bool]:
+        return raw_reward / self.reward_scale, bool(raw_termination)
+
+    def _raw_reward(self) -> Tuple[int, int]:
+        return self.expect_or_raise(Message.REWARD)
 
     def _ask_reward(self):
         self.put_command(Message.REWARD, expect_ok=False)
