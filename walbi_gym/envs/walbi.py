@@ -13,22 +13,28 @@ from .errors import *
 
 DecimalList = TypeVar('DecimalList', np.ndarray, Sequence[float])
 
+_MOTOR_RANGES = {  # ((min_position, min_span), (max_position, max_span))
+        0: ((0, 0), (1000, 30000)),
+        1: ((0, 0), (1000, 30000)),
+        2: ((0, 0), (1000, 30000)),
+        3: ((0, 0), (1000, 30000)),
+        4: ((0, 0), (1000, 30000)),
+        5: ((0, 0), (1000, 30000)),
+        6: ((0, 0), (1000, 30000)),
+        7: ((0, 0), (1000, 30000)),
+        8: ((0, 0), (1000, 30000)),
+        9: ((0, 0), (1000, 30000)),
+    }
+_MOTOR_RANGES_LOW, _MOTOR_RANGES_HIGH = tuple(zip(*tuple(_MOTOR_RANGES.values())))
+_POSITIONS_LOW, _ = tuple(zip(*_MOTOR_RANGES_LOW))
+_POSITIONS_HIGH, _ = tuple(zip(*_MOTOR_RANGES_HIGH))
+
 
 class WalbiEnv(Env):
-    action_space = spaces.Box(low=-1, high=1, shape=(10, 2))
-    observation_space = None
-    motor_ranges = {
-        0: ((0, 1000), (0, 30000)),
-        1: ((0, 1000), (0, 30000)),
-        2: ((0, 1000), (0, 30000)),
-        3: ((0, 1000), (0, 30000)),
-        4: ((0, 1000), (0, 30000)),
-        5: ((0, 1000), (0, 30000)),
-        6: ((0, 1000), (0, 30000)),
-        7: ((0, 1000), (0, 30000)),
-        8: ((0, 1000), (0, 30000)),
-        9: ((0, 1000), (0, 30000)),
-    }
+    action_space = spaces.Box(low=-1, high=1, shape=(10, 2), dtype=np.float16)
+    raw_action_space = spaces.Box(low=np.array(_MOTOR_RANGES_LOW), high=np.array(_MOTOR_RANGES_HIGH), dtype=np.int16)
+    observation_space = spaces.Box(low=-1, high=1, shape=(10,), dtype=np.float16)
+    raw_observation_space = spaces.Box(low=np.array(_POSITIONS_LOW), high=np.array(_POSITIONS_HIGH), dtype=np.int16)
     reward_scale = 1000
     reward_range = (-32.768, +32.767)  # linked to reward_scale
     delay = 0.1  # delay for a message to be sent
@@ -160,16 +166,28 @@ class WalbiEnv(Env):
     def _action(self, action: DecimalList):
         self._raw_action(self._convert_action_float_to_int(action))
 
-    def _convert_action_float_to_int(self, action: DecimalList) -> List[int]:
-        int16_action = []
-        for motor, ranges in self.motor_ranges.items():
-            position_normalized, speed_normalized = action[motor]
-            position = int(constrain(position_normalized, -1, 1, ranges[0][0], ranges[0][1]))
-            span = int(constrain(speed_normalized, -1, 1, ranges[1][0], ranges[1][1]))
-            int16_action.append((position, span))
+    @classmethod
+    def _convert_action_float_to_int(cls, action: DecimalList) -> List[Tuple[int, int]]:
+        int16_action = [
+            (
+                int(constrain(
+                    position,
+                    cls.action_space.low[index][0],
+                    cls.action_space.high[index][0],
+                    cls.raw_action_space.low[index][0],
+                    cls.raw_action_space.high[index][0]
+                )),
+                int(constrain(
+                    span,
+                    cls.action_space.low[index][1],
+                    cls.action_space.high[index][1],
+                    cls.raw_action_space.low[index][1],
+                    cls.raw_action_space.high[index][1]
+                ))
+            ) for index, (position, span) in enumerate(action)]
         return int16_action
 
-    def _raw_action(self, int16_action: Sequence[int]):
+    def _raw_action(self, int16_action: Sequence[Tuple[int, int]]):
         self.put_command(Message.ACTION, param=int16_action)
 
     def _observation(self):
@@ -177,9 +195,18 @@ class WalbiEnv(Env):
         self._obs = self._convert_obs_int_to_float(raw_obs)
         return self._obs
 
-    def _convert_obs_int_to_float(self, raw_obs: Sequence[int]) -> np.ndarray:
-        # TODO
-        return np.array(raw_obs)
+    @classmethod
+    def _convert_obs_int_to_float(cls, raw_obs: Sequence[int]) -> np.ndarray:
+        obs = np.array([
+            constrain(
+                raw_value,
+                cls.raw_observation_space.low[index],
+                cls.raw_observation_space.high[index],
+                cls.observation_space.low[index],
+                cls.observation_space.high[index]
+            ) for index, raw_value in enumerate(raw_obs)
+        ], dtype=np.float16)
+        return obs
 
     def _raw_observation(self) -> List[int]:
         return self.expect_or_raise(Message.OBSERVATION)
@@ -188,7 +215,7 @@ class WalbiEnv(Env):
         self.put_command(Message.OBSERVATION, expect_ok=False)
         return self._observation()
 
-    def _reward(self) -> Tuple[float, bool]:
+    def _reward(self, raw=False) -> Tuple[float, bool]:
         raw_r, raw_d = self._raw_reward()
         self._r, self._d = self._convert_reward_int_to_types(raw_r, raw_d)
         return self._r, self._d
