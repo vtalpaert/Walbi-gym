@@ -20,6 +20,10 @@ void non_blocking_delay(unsigned long interval)
     while (millis() - start_millis < interval) { delay(10); }
 }
 
+void wait_for_serial()
+{
+    while (Serial.available() == 0) { non_blocking_delay(1); }
+}
 
 void read_positions()
 {
@@ -40,7 +44,7 @@ void receive_position(uint8_t id, uint8_t command, uint16_t param1, uint16_t par
 
 bool wait_acknowledge()
 {
-    non_blocking_delay(100);
+    wait_for_serial();
     Message message_received = read_message();
     if(message_received != OK)
     {
@@ -53,6 +57,7 @@ bool wait_acknowledge()
 
 bool action()
 {
+    wait_for_serial();
     Message message_received = read_message();
     if(message_received == ACTION)
     {

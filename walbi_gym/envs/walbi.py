@@ -14,16 +14,16 @@ from .errors import *
 DecimalList = TypeVar('DecimalList', np.ndarray, Sequence[float])
 
 _MOTOR_RANGES = {  # ((min_position, min_span), (max_position, max_span))
-        0: ((0, 0), (1000, 30000)),
-        1: ((0, 0), (1000, 30000)),
-        2: ((0, 0), (1000, 30000)),
-        3: ((0, 0), (1000, 30000)),
-        4: ((0, 0), (1000, 30000)),
-        5: ((0, 0), (1000, 30000)),
-        6: ((0, 0), (1000, 30000)),
-        7: ((0, 0), (1000, 30000)),
-        8: ((0, 0), (1000, 30000)),
-        9: ((0, 0), (1000, 30000)),
+        0: ((210, 0), (745, 1000)),
+        1: ((367, 0), (569, 1000)),
+        2: ((423, 0), (1000, 1000)),
+        3: ((607, 0), (886, 1000)),
+        4: ((157, 0), (868, 1000)),
+        5: ((103, 0), (659, 1000)),
+        6: ((560, 0), (681, 1000)),
+        7: ((0, 0), (595, 1000)),
+        8: ((372, 0), (630, 1000)),
+        9: ((179, 0), (888, 1000)),
     }
 _MOTOR_RANGES_LOW, _MOTOR_RANGES_HIGH = tuple(zip(*tuple(_MOTOR_RANGES.values())))
 _POSITIONS_LOW, _ = tuple(zip(*_MOTOR_RANGES_LOW))
@@ -97,9 +97,9 @@ class WalbiEnv(Env):
     def _handle_message(self, message):
         # Only called by threads respecting our _serial_lock
         if self.debug:
-            print(message, 'just in')
+            print('Listener thread:', message, 'just in')
         if message == Message.OBSERVATION:
-            raw_obs = [read_i16(self.f) for _ in self.motor_ranges]
+            raw_obs = [read_i16(self.f) for _ in range(self.raw_observation_space.shape[0])]
             self._received_queue.put((message, raw_obs))
             self.put_command(Message.OK)
         elif message == Message.REWARD:
@@ -117,7 +117,7 @@ class WalbiEnv(Env):
     def _send_message(self, message, param):
         # Only called by threads respecting our _serial_lock
         if self.debug:
-            print('write', message)
+            print('Command thread: sent', message)
         write_message(self.f, message)
         if message == Message.ACTION:
             for position, span in param:
@@ -126,7 +126,7 @@ class WalbiEnv(Env):
         elif message == Message.CONFIG:
             raise NotImplementedError(str(message))
 
-    def put_command(self, message, param=None, delay: bool=True, expect_ok: bool=False):
+    def put_command(self, message, param=None, delay: bool = True, expect_ok: bool = False):
         self._command_queue.put((message, param))
         if delay:
             time.sleep(self.delay)
@@ -188,7 +188,7 @@ class WalbiEnv(Env):
         return int16_action
 
     def _raw_action(self, int16_action: Sequence[Tuple[int, int]]):
-        self.put_command(Message.ACTION, param=int16_action)
+        self.put_command(Message.ACTION, param=int16_action, expect_ok=True)
 
     def _observation(self):
         raw_obs = self._raw_observation()
