@@ -1,10 +1,12 @@
 import typing
+import time
+import os.path
+from os import makedirs
 
 from ruamel.yaml import YAML
 import numpy as np
 from gym import Wrapper
 
-from .walbi import WalbiEnv
 
 yaml = YAML()   # typ='safe', if not specfied, is 'rt' (round-trip)
 
@@ -33,14 +35,20 @@ T = typing.TypeVar('T', Transition, RawTransition)
 
 
 class RecordWrapper(Wrapper):
-    def __init__(self, env, save_to: str):
-        self.save_to = save_to
+    file_format = '-%Y-%m-%d-%H-%M.yaml'
+
+    def __init__(self, env, save_to_folder: str):
+        self.save_to = save_to_folder
+        self.step_counter = 0
         self._last_observation = None
         self.transitions: typing.List[Transition] = []
         super(RecordWrapper, self).__init__(env)
 
-    def step(self, action):
-        next_observation, reward, done, info = self.env.step(action)
+    def step(self, action, agent_info=None):
+        if agent_info is None:
+            agent_info = {}
+        next_observation, reward, done, env_info = self.env.step(action)
+        env_info['step'] = self.step_counter  # step goes to env_info rather than agent_info
         self.transitions.append(
             Transition(
                 self._last_observation,
@@ -48,20 +56,39 @@ class RecordWrapper(Wrapper):
                 next_observation,
                 reward,
                 done,
-                {},
-                info
+                agent_info,
+                env_info
             )
         )
+        self.step_counter += 1
         self._last_observation = next_observation
-        return next_observation, reward, done, info
+        return next_observation, reward, done, env_info
 
     def reset(self, **kwargs):
         self._last_observation = self.env.reset(**kwargs)
+        self.step_counter = 0
         return self._last_observation
 
     def close(self):
-        dump_transitions(self.transitions, self.save_to)
+        self.flush()
         return self.env.close()
+
+    def flush(self):
+        makedirs(self.save_to, exist_ok=True)
+        savename = self._get_name() + time.strftime(self.file_format)
+        savepath = os.path.join(self.save_to, savename)
+        dump_transitions(self.transitions, savepath)
+        self.transitions = []
+
+    def _get_name(self):
+        try:
+            return self.env.spec.id
+        except AttributeError:
+            pass
+        try:
+            return self.env.name
+        except AttributeError:
+            return 'Env'
 
 
 def dump_transitions(transitions: typing.Sequence[T], filename, to_dict=True):
@@ -109,33 +136,13 @@ def load_transitions(filename) -> typing.Sequence[T]:
 
 
 if __name__ == '__main__':
-    filename = 'test.yaml'
+    import gym
+    import walbi_gym
 
-    def _random_transition():
-        return Transition(
-            observation=WalbiEnv.observation_space.sample(),
-            action=WalbiEnv.action_space.sample(),
-            next_observation=WalbiEnv.observation_space.sample(),
-            reward=np.random.uniform(*WalbiEnv.reward_range),
-            terminal=bool(np.random.randint(0, 2)),
-            agent_info={'debug': 'test'},
-            env_info={'debug': 'test'}
-        )
-
-    def _random_raw_transition():
-        return RawTransition(
-            raw_observation=WalbiEnv.raw_observation_space.sample(),
-            raw_action=WalbiEnv.raw_action_space.sample(),
-            next_raw_observation=WalbiEnv.raw_observation_space.sample(),
-            reward=np.random.uniform(*WalbiEnv.reward_range),
-            terminal=bool(np.random.randint(0, 2)),
-            agent_info={'debug': 'test'},
-            env_info={'debug': 'test'}
-        )
-
-    transitions_generated = [_random_transition() for _ in range(2)]
-    dump_transitions(transitions_generated, filename)
-    transitions_loaded = load_transitions(filename)
-    for tg, tl in zip(transitions_generated, transitions_loaded):
-        print(tg)
-        print(tl)
+    with RecordWrapper(gym.make('WalbiMock-v0'), 'test') as env:
+        env.reset()
+        for _ in range(20):
+            action = env.action_space.sample()
+            _, _, done, _ = env.step(action)
+            if done:
+                env.reset()

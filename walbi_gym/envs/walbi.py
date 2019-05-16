@@ -32,6 +32,7 @@ _POSITIONS_HIGH, _ = tuple(zip(*_MOTOR_RANGES_HIGH))
 
 
 class WalbiEnv(Env):
+    name = 'Walbi'
     motor_ranges = _MOTOR_RANGES
     action_space = spaces.Box(low=-1, high=1, shape=(10, 2), dtype=np.float16)
     raw_action_space = spaces.Box(low=np.array(_MOTOR_RANGES_LOW), high=np.array(_MOTOR_RANGES_HIGH), dtype=np.int16)
