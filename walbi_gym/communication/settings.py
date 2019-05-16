@@ -1,6 +1,9 @@
 from enum import IntEnum
 
 
+RATE = 1 / 2000  # 2000 Hz (limit the rate of communication with the arduino)
+
+
 class Message(IntEnum):
     """
     Pre-defined messages

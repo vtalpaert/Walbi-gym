@@ -4,7 +4,7 @@ import numpy as np
 from gym import Env, spaces
 
 from walbi_gym.communication.settings import *
-from walbi_gym.communication.serial.serial_interface import SerialInterface
+from walbi_gym.communication import SerialInterface
 
 
 def constrain(x, in_min,  in_max, out_min, out_max):
