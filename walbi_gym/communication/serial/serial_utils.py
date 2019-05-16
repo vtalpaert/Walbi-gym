@@ -3,34 +3,7 @@ from __future__ import print_function, division, absolute_import
 import sys
 import glob
 
-try:
-    import queue
-except ImportError:
-    import Queue as queue
-
 import serial
-
-
-# From https://stackoverflow.com/questions/6517953/clear-all-items-from-the-queue
-class CustomQueue(queue.Queue):
-    """
-    A custom queue subclass that provides a :meth:`clear` method.
-    """
-
-    def clear(self):
-        """
-        Clears all items from the queue.
-        """
-
-        with self.mutex:
-            unfinished = self.unfinished_tasks - len(self.queue)
-            if unfinished <= 0:
-                if unfinished < 0:
-                    raise ValueError('task_done() called too many times')
-                self.all_tasks_done.notify_all()
-            self.unfinished_tasks = unfinished
-            self.queue.clear()
-            self.not_full.notify_all()
 
 
 # From https://stackoverflow.com/questions/12090503/listing-available-com-ports-with-python
@@ -79,7 +52,3 @@ def open_serial_port(serial_port=None, baudrate=115200, timeout=0, write_timeout
     # timeout=0 non-blocking mode, return immediately in any case, returning zero or more,
     # up to the requested number of bytes
     return serial.Serial(port=serial_port, baudrate=baudrate, timeout=timeout, writeTimeout=write_timeout)
-
-
-def constrain(x, in_min,  in_max, out_min, out_max):
-    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min

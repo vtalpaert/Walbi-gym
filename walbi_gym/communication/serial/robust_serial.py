@@ -2,24 +2,7 @@ from __future__ import print_function, division, unicode_literals, absolute_impo
 
 import struct
 
-from enum import IntEnum
-
-
-class Message(IntEnum):
-    """
-    Pre-defined messages
-    """
-    OK = 1
-    CONNECT = 2
-    ALREADY_CONNECTED = 3
-    RESET = 4
-    STEP = 5
-    ACTION = 6
-    OBSERVATION = 7
-    REWARD = 8  # reward and termination
-    CLOSE = 9
-    CONFIG = 10
-    ERROR = 11
+from walbi_gym.communication.settings import Message
 
 
 def read_message(f):

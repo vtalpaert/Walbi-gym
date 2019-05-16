@@ -1,13 +1,39 @@
 import threading
 import time
 import weakref
+try:
+    import queue
+except ImportError:
+    import Queue as queue
 
 import serial
 
-from .robust_serial import Message
-from .utils import queue
+from .settings import Message
+
 
 rate = 1 / 2000  # 2000 Hz (limit the rate of communication with the arduino)
+
+
+# From https://stackoverflow.com/questions/6517953/clear-all-items-from-the-queue
+class CustomQueue(queue.Queue):
+    """
+    A custom queue subclass that provides a :meth:`clear` method.
+    """
+
+    def clear(self):
+        """
+        Clears all items from the queue.
+        """
+
+        with self.mutex:
+            unfinished = self.unfinished_tasks - len(self.queue)
+            if unfinished <= 0:
+                if unfinished < 0:
+                    raise ValueError('task_done() called too many times')
+                self.all_tasks_done.notify_all()
+            self.unfinished_tasks = unfinished
+            self.queue.clear()
+            self.not_full.notify_all()
 
 
 class CommandThread(threading.Thread):
