@@ -9,5 +9,6 @@ if __name__ == '__main__':
         walbi.debug = True
         while True:
             obs = walbi._ask_observation()
-            print('observation', obs)
-            time.sleep(5)
+            print('[', ','.join(map(str, obs)), ']')
+            #time.sleep(20)
+            input()

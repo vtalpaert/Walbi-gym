@@ -42,9 +42,9 @@ class RecordWrapper(Wrapper):
         self.step_counter = 0
         self._last_observation = None
         self.transitions: typing.List[Transition] = []
-        super(RecordWrapper, self).__init__(env)
+        super().__init__(env)
 
-    def step(self, action, agent_info=None):
+    def step(self, action, agent_info=None):  # pylint: disable=E0202
         if agent_info is None:
             agent_info = {}
         next_observation, reward, done, env_info = self.env.step(action)
@@ -64,7 +64,7 @@ class RecordWrapper(Wrapper):
         self._last_observation = next_observation
         return next_observation, reward, done, env_info
 
-    def reset(self, **kwargs):
+    def reset(self, **kwargs):  # pylint: disable=E0202
         self._last_observation = self.env.reset(**kwargs)
         self.step_counter = 0
         return self._last_observation

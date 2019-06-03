@@ -14,6 +14,7 @@ python3 setup.py
 ### Gym environment
 
 You may create a Walbi Gym environment as usual.
+
 ```python
 import gym
 import walbi_gym  # will register env
@@ -25,11 +26,13 @@ env = gym.make('Walbi-v0')
 Arduino Makefile only works with Linux/Mac Os systems: [https://github.com/sudar/Arduino-Makefile](https://github.com/sudar/Arduino-Makefile)
 
 Install Arduino Makefile:
+
 ```bash
 sudo apt-get install arduino-mk
 ```
 
 Compile and upload the code to the Arduino (please check the board name in the Makefile):
+
 ```bash
 cd arduino-board/
 make

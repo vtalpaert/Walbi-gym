@@ -10,8 +10,8 @@
 namespace Walbi
 {
 
-#define SOFTWARE_SERIAL_BAUD 115200  // Baudrate to DebugBoard
-#define MOTOR_NB 10
+const long SOFTWARE_SERIAL_BAUD = 115200;  // Baudrate to DebugBoard
+const uint8_t MOTOR_NB = 10;
 const uint8_t MOTOR_IDS[MOTOR_NB] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
 // Define the messages that can be sent and received
@@ -43,7 +43,7 @@ public:
     bool is_connected = false;
     bool connect();  // run this in setup
 
-    Walbi(uint8_t DEBUG_BOARD_RX, uint8_t DEBUG_BOARD_TX, uint8_t COMPUTER_SERIAL_BAUD, bool auto_connect=true);
+    Walbi(uint8_t DEBUG_BOARD_RX, uint8_t DEBUG_BOARD_TX, long COMPUTER_SERIAL_BAUD, bool auto_connect=true);
     void read_positions();
 
     void get_messages_from_serial(); // run this in loop

@@ -24,7 +24,7 @@ void receive_position_(uint8_t id, uint8_t command, uint16_t param1, uint16_t pa
     last_received_position_ = param1;
 }
 
-Walbi::Walbi(uint8_t DEBUG_BOARD_RX, uint8_t DEBUG_BOARD_TX, uint8_t COMPUTER_SERIAL_BAUD, bool auto_connect)
+Walbi::Walbi(uint8_t DEBUG_BOARD_RX, uint8_t DEBUG_BOARD_TX, long COMPUTER_SERIAL_BAUD, bool auto_connect)
 {
     this->mySerial_ = new SoftwareSerial(DEBUG_BOARD_RX, DEBUG_BOARD_TX);
     this->mySerial_->begin(SOFTWARE_SERIAL_BAUD); // SoftwareSerial - connects Arduino to Debug Board serial pins (RX->TX, TX->RX, GND->GND)

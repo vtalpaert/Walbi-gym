@@ -13,7 +13,7 @@ class WalbiMockEnv(WalbiEnv):
     def step(self, action):
         observation = self.observation_space.sample()
         reward = np.random.uniform(*self.reward_range)
-        terminal = np.random.randint(0, 11) == 0  # p=0.1
+        terminal = bool(np.random.binomial(1, 0.1))  # p=0.1
         info = {'debug': 'mock'}
         return observation, reward, terminal, info
 
