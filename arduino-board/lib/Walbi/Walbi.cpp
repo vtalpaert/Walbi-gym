@@ -178,7 +178,7 @@ bool Walbi::connect()
     {
         write_message(CONNECT);
         wait_for_bytes(1, 1000);
-        get_messages_from_serial();
+        this->get_messages_from_serial();
     }
     return this->is_connected;
 }

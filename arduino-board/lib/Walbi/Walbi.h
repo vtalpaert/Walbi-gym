@@ -10,6 +10,8 @@
 namespace Walbi
 {
 
+#define VERSION 1.0
+
 const long SOFTWARE_SERIAL_BAUD = 115200;  // Baudrate to DebugBoard
 const uint8_t MOTOR_NB = 10;
 const uint8_t MOTOR_IDS[MOTOR_NB] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
