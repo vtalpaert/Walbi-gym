@@ -86,7 +86,7 @@ class RecordWrapper(Wrapper):
         except AttributeError:
             pass
         try:
-            return self.env.name
+            return self.env.name + '-v' + str(self.env.version)
         except AttributeError:
             return 'Env'
 
