@@ -28,4 +28,8 @@ class WalbiTimeoutError(WalbiError):
 
 
 class WalbiUnexpectedMessageError(WalbiError):
-    pass
+     def __init__(self, received_message, expected_message=None, *args):
+        self.received_message = received_message
+        self.expected_message = expected_message
+        message = 'Expected %s but got %s' % (expected_message, received_message)
+        super().__init__(message, received_message, *args)

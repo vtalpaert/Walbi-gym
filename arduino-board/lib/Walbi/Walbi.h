@@ -27,18 +27,29 @@ enum Message {
     OBSERVATION = 7,
     REWARD = 8,  // send two values; reward and termination
     CLOSE = 9,
-    CONFIG = 10,
+    INFO = 10,
     ERROR = 11,
+    TIMESTAMP_OBSERVATION = 12,
 };
 typedef enum Message Message;
 Message read_message();
 void write_message(enum Message myMessage);
+
+enum ErrorCode {
+    RECEIVED_UNKNOWN_MESSAGE = 0,
+    EXPECTED_ACTION = 1,
+    EXPECTED_OK = 2,
+    DID_NOT_EXPECT_OK = 3,
+    NOT_IMPLEMENTED_MESSAGE = 4,
+};
 
 class Walbi
 {
 private:
     SoftwareSerial* mySerial_;
     ServoBus* bus_;
+    int16_t timestamp_delta_highest_allowed_ = 10000; // when difference between two ts is too high, signal timeout
+    int16_t timestamp_delta_timeout_signal_ = -10000; // will become -1 when scaled
 public:
     uint16_t positions[MOTOR_NB];
     uint8_t motor_ids[MOTOR_NB];
@@ -47,8 +58,10 @@ public:
 
     Walbi(uint8_t DEBUG_BOARD_RX, uint8_t DEBUG_BOARD_TX, long COMPUTER_SERIAL_BAUD, bool auto_connect=true);
     void read_positions();
+    void get_messages_from_serial();
+    void collect_observation();
 
-    void get_messages_from_serial(); // run this in loop
+    void run_once(); // run this in loop
     bool action();
     bool observation();
     bool reward();

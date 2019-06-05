@@ -6,7 +6,7 @@ from .serial_utils import open_serial_port
 from .robust_serial import *
 from walbi_gym.envs.errors import *
 from walbi_gym.communication.settings import *
-from walbi_gym.communication.base import Interface
+from walbi_gym.communication.base import BaseInterface
 
 
 MAP_TYPE_READ = {
@@ -31,7 +31,7 @@ def read_types(type_list, file):
 def write_types(): pass  # TODO
 
 
-class SerialInterface(Interface):
+class SerialInterface(BaseInterface):
     def __init__(self, serial_port=None, baudrate=115200):
         try:
             self.file = open_serial_port(serial_port=serial_port, baudrate=baudrate, timeout=None)
@@ -55,7 +55,9 @@ class SerialInterface(Interface):
         # Only called by threads respecting our _serial_lock
         if self.debug:
             print('Listener thread:', message, 'just in')
-        if message in (Message.OBSERVATION, Message.REWARD, Message.ERROR):
+        if message in (
+            Message.OBSERVATION, Message.REWARD, Message.ERROR, Message.TIMESTAMP_OBSERVATION
+        ):
             self._received_queue.put(
                 (
                     message,
@@ -77,5 +79,5 @@ class SerialInterface(Interface):
             for position, span in param:
                 write_i16(self.file, position)
                 write_i16(self.file, span)
-        elif message == Message.CONFIG:
+        elif message == Message.INFO:
             raise NotImplementedError(str(message))

@@ -3,50 +3,41 @@ from typing import TypeVar, List, Tuple, Sequence
 import numpy as np
 from gym import Env, spaces
 
-from walbi_gym.communication.settings import *
-from walbi_gym.communication import SerialInterface
+import walbi_gym.communication.settings as _s
+from walbi_gym.communication.settings import Message
+from walbi_gym.communication import BaseInterface, SerialInterface
 
 
-def constrain(x, in_min,  in_max, out_min, out_max):
+def constrain(x, in_min,  in_max, out_min, out_max, clip=False):
+    if clip:
+        x = max(in_min, min(in_max, x))
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
 
 _DecimalList = TypeVar('DecimalList', np.ndarray, Sequence[float])
 
 
-_MOTOR_RANGES = {  # ((min_position, min_span), (max_position, max_span))
-        0: ((210, 0), (745, 1000)),
-        1: ((367, 0), (569, 1000)),
-        2: ((423, 0), (1000, 1000)),
-        3: ((607, 0), (886, 1000)),
-        4: ((157, 0), (868, 1000)),
-        5: ((103, 0), (659, 1000)),
-        6: ((560, 0), (681, 1000)),
-        7: ((0, 0), (595, 1000)),
-        8: ((372, 0), (630, 1000)),
-        9: ((179, 0), (888, 1000)),
-    }
-_MOTOR_RANGES_LOW, _MOTOR_RANGES_HIGH = tuple(zip(*tuple(_MOTOR_RANGES.values())))
-_POSITIONS_LOW, _ = tuple(zip(*_MOTOR_RANGES_LOW))
-_POSITIONS_HIGH, _ = tuple(zip(*_MOTOR_RANGES_HIGH))
-
-
 class WalbiEnv(Env):
     name = 'Walbi'
-    version = 0
-    motor_ranges = _MOTOR_RANGES
-    action_space = spaces.Box(low=-1, high=1, shape=(10, 2), dtype=np.float16)
-    raw_action_space = spaces.Box(low=np.array(_MOTOR_RANGES_LOW), high=np.array(_MOTOR_RANGES_HIGH), dtype=np.int16)
-    observation_space = spaces.Box(low=-1, high=1, shape=(10,), dtype=np.float16)
-    raw_observation_space = spaces.Box(low=np.array(_POSITIONS_LOW), high=np.array(_POSITIONS_HIGH), dtype=np.int16)
+    version = _s.VERSION
+    motor_ranges = _s.MOTOR_RANGES
+    action_space = spaces.Box(low=-1, high=1, shape=_s.ACTION_SHAPE, dtype=np.float16)
+    raw_action_space = spaces.Box(low=np.array(_s.RAW_ACTION_LOW), high=np.array(_s.RAW_ACTION_HIGH), dtype=np.int16)
+    observation_space = spaces.Box(low=-1, high=1, shape=_s.OBSERVATION_SHAPE, dtype=np.float16)
+    raw_observation_space = spaces.Box(low=np.array(_s.RAW_OBSERVATION_LOW), high=np.array(_s.RAW_OBSERVATION_HIGH), dtype=np.int16)
     reward_scale = 1000
     reward_range = (-32.768, +32.767)  # linked to reward_scale
 
-    def __init__(self, autoconnect=True):
+    def __init__(self, interface='serial', autoconnect=True, *args, **kwargs):
         self._obs = self._d = self._r = None
 
-        self.interface = SerialInterface()
-        if autoconnect:
+        if interface == 'serial':
+            self.interface = SerialInterface(*args, **kwargs)
+        elif interface in ['bluetooth', 'wifi']:
+            raise NotImplementedError('%s is not implemented yet' % interface)
+        elif isinstance(interface, BaseInterface):
+            self.interface = interface
+        if autoconnect and not self.interface.is_connected:
             self.interface.connect()
 
     def reset(self):
@@ -127,6 +118,11 @@ class WalbiEnv(Env):
     def _ask_reward(self):
         self.interface.put_command(Message.REWARD, expect_ok=False)
         return self._reward()
+    
+    def _ask_timestamp_observation(self):
+        self.interface.put_command(Message.TIMESTAMP_OBSERVATION, expect_ok=False)
+        return self.interface.expect_or_raise(Message.TIMESTAMP_OBSERVATION)
+
 
     def render(self, mode='human'):
         """TODO"""

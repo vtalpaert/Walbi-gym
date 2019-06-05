@@ -8,7 +8,7 @@ from walbi_gym.envs.errors import *
 from walbi_gym.communication.settings import *
 
 
-class Interface(ABC):
+class BaseInterface(ABC):
     delay = 0.1  # delay for a message to be sent
     expect_or_raise_timeout = 1
     debug = False
@@ -39,7 +39,12 @@ class Interface(ABC):
             print('Waiting for Arduino...')
             self.put_command(Message.CONNECT)
             try:
-                self.expect_or_raise_list((Message.CONNECT, Message.ALREADY_CONNECTED))
+                self.expect_or_raise(Message.CONNECT)
+            except WalbiUnexpectedMessageError as e:
+                if e.received_message == Message.ALREADY_CONNECTED:
+                    print('Arduino already connected')
+                else:
+                    raise e from e
             except WalbiError:
                 time.sleep(1)
                 continue
@@ -72,19 +77,16 @@ class Interface(ABC):
             self.expect_or_raise(Message.OK)
 
     def expect_or_raise(self, expected_message: Message):
-        return self.expect_or_raise_list([expected_message])
-
-    def expect_or_raise_list(self, expected_messages: Sequence):
         if self.debug:
-            print('expect', expected_messages)
+            print('expect', expected_message)
         try:
             message, param = self._received_queue.get(block=True, timeout=self.expect_or_raise_timeout)
         except queue.Empty as e:
-            raise WalbiTimeoutError(self.expect_or_raise_timeout, expected_messages) from e
+            raise WalbiTimeoutError(self.expect_or_raise_timeout, expected_message) from e
         if message == Message.ERROR:
             raise WalbiArduinoError(int(param))
-        if message not in expected_messages:
-            raise WalbiUnexpectedMessageError('Expected %s but got %s' % (expected_messages, message))
+        if message != expected_message:
+            raise WalbiUnexpectedMessageError(message, expected_message=expected_message)
         if self.debug:
             print('got %s as expected (param %s)' % (message, str(param)))
         return param
