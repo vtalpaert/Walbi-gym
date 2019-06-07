@@ -11,6 +11,10 @@ class WalbiCommunicationError(WalbiError):
     pass
 
 
+class WalbiProtocolVersionError(WalbiCommunicationError):
+    """Mismatch between local and distant protocol version"""
+
+
 class WalbiArduinoError(WalbiError):
     def __init__(self, code, *args):
         self.code = code

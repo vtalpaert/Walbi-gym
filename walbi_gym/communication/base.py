@@ -1,15 +1,48 @@
 from abc import ABC
 import threading
 import time
-from typing import Sequence
 
 from walbi_gym.communication.threads import CommandThread, ListenerThread, CustomQueue, queue
-from walbi_gym.envs.errors import *
-from walbi_gym.communication.settings import *
+from walbi_gym.envs import errors
+import walbi_gym.communication.settings as _s
+from walbi_gym.communication.settings import Message
+from walbi_gym.communication import robust_serial
+
+
+MAP_TYPE_READ = {
+    'int8': robust_serial.read_i8,
+    'int16': robust_serial.read_i16,
+    'int32': robust_serial.read_i32,
+}
+MAP_TYPE_WRITE = {
+    'int8': robust_serial.write_i8,
+    'int16': robust_serial.write_i16,
+    'int32': robust_serial.write_i32,
+}
+
+
+def read_types(type_list, file):
+    try:
+        return [MAP_TYPE_READ[t](file) for t in type_list]
+    except KeyError:
+        raise errors.WalbiCommunicationError('%s has an invalid type' % str(type_list))
+
+
+def write_types(type_list, data, file):
+    """data can be a list of types [t1, t2] or list of list of types [[t1, t2], [t1, t2]]"""
+    try:
+        for t, value in zip(type_list, data):
+            if isinstance(t, str):
+                MAP_TYPE_WRITE[t](file, value)
+            else:  # assume second case
+                for sub_t, sub_value in zip(t, value):
+                    MAP_TYPE_WRITE[sub_t](file, sub_value)
+    except KeyError:
+        raise errors.WalbiCommunicationError('%s has an invalid type' % str(type_list))
 
 
 class BaseInterface(ABC):
-    delay = 0.1  # delay for a message to be sent
+    delay = 0.1  # delay for a message to be sent # TODO test lower
     expect_or_raise_timeout = 1
     debug = False
     file = None
@@ -33,19 +66,22 @@ class BaseInterface(ABC):
         for t in self._threads:
             t.start()
 
+    def _read_byte(self):
+        raise NotImplementedError
+
     def connect(self):
         # Initialize communication with Arduino
         while not self.is_connected:
-            print('Waiting for Arduino...')
             self.put_command(Message.CONNECT)
             try:
                 self.expect_or_raise(Message.CONNECT)
-            except WalbiUnexpectedMessageError as e:
+            except errors.WalbiUnexpectedMessageError as e:
                 if e.received_message == Message.ALREADY_CONNECTED:
                     print('Arduino already connected')
                 else:
                     raise e from e
-            except WalbiError:
+            except errors.WalbiError:
+                print('Waiting for Arduino...')
                 time.sleep(1)
                 continue
             print('Connected to Arduino')
@@ -55,19 +91,48 @@ class BaseInterface(ABC):
         try:  # if we still receive CONNECT, send that we consider ourselves ALREADY_CONNECTED
             self.expect_or_raise(Message.CONNECT)
             self.put_command(Message.ALREADY_CONNECTED)
-        except WalbiError:
+        except errors.WalbiError:
             pass
-        time.sleep(1)
+        time.sleep(0.5)
         self._received_queue.clear()
 
-    def _send_message(self, message, param):
-        raise NotImplementedError
+    def verify_version(self):
+        self.put_command(Message.VERSION, param=_s.PROTOCOL_VERSION, expect_ok=True)
+        arduino_version = self.expect_or_raise(Message.VERSION)
+        if arduino_version != _s.PROTOCOL_VERSION:
+            raise errors.WalbiProtocolVersionError()
+        return True
 
     def _handle_message(self, message):
-        raise NotImplementedError
+        # Only called by threads respecting our _serial_lock
+        if self.debug:
+            print('Listener thread:', message, 'just in')
+        if message in (Message.STATE, Message.ERROR):
+            try:
+                self._received_queue.put(
+                    (
+                        message,
+                        read_types(_s.MESSAGE_TYPES[message], self.file)
+                    )
+                )
+            except KeyError as e:
+                raise NotImplementedError(str(message)) from e
+            self.put_command(Message.OK)
+        elif message in (Message.CONNECT, Message.ALREADY_CONNECTED, Message.OK):
+            self._received_queue.put((message, None))
+        else:
+            print('%s was not expected, ignored' % message)
 
-    def _read_byte(self):
-        raise NotImplementedError
+    def _send_message(self, message, param):
+        # Only called by threads respecting our _serial_lock
+        if self.debug:
+            print('Command thread: sent', message)
+        robust_serial.write_message(self.file, message)
+        if param is not None:
+            try:
+                write_types(_s.MESSAGE_TYPES[message], param, self.file)
+            except KeyError as e:
+                raise NotImplementedError(str(message)) from e
 
     def put_command(self, message, param=None, delay: bool = True, expect_ok: bool = False):
         self._command_queue.put((message, param))
@@ -82,11 +147,11 @@ class BaseInterface(ABC):
         try:
             message, param = self._received_queue.get(block=True, timeout=self.expect_or_raise_timeout)
         except queue.Empty as e:
-            raise WalbiTimeoutError(self.expect_or_raise_timeout, expected_message) from e
+            raise errors.WalbiTimeoutError(self.expect_or_raise_timeout, expected_message) from e
         if message == Message.ERROR:
-            raise WalbiArduinoError(int(param))
+            raise errors.WalbiArduinoError(int(param))
         if message != expected_message:
-            raise WalbiUnexpectedMessageError(message, expected_message=expected_message)
+            raise errors.WalbiUnexpectedMessageError(message, expected_message=expected_message)
         if self.debug:
             print('got %s as expected (param %s)' % (message, str(param)))
         return param

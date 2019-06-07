@@ -16,5 +16,5 @@ void setup()
 
 void loop()
 {
-    walbi->run_once();
+    walbi->handle_messages_from_serial();
 }

@@ -1,10 +1,8 @@
 from enum import IntEnum
 
-VERSION = 1  # int: protocol version
-
+PROTOCOL_VERSION = 2  # int: protocol version
 
 RATE = 1 / 2000  # 2000 Hz (limit the rate of communication with the arduino)
-
 
 class Message(IntEnum):
     """
@@ -16,23 +14,20 @@ class Message(IntEnum):
     RESET = 4
     STEP = 5
     ACTION = 6
-    OBSERVATION = 7
-    REWARD = 8  # reward and termination
-    CLOSE = 9
-    INFO = 10
-    ERROR = 11
-    TIMESTAMP_OBSERVATION = 12
-
+    STATE = 7
+    CLOSE = 8
+    INFO = 9
+    ERROR = 10
+    VERSION = 11
 
 ERROR_CODES = {  # must be coherent with what Walbi.cpp throws
     -1: 'UNKNOWN_ERROR_CODE',
     0: 'RECEIVED_UNKNOWN_MESSAGE',
-    1: 'EXPECTED_ACTION',
-    2: 'EXPECTED_OK',
+    1: 'EXPECTED_OK',
+    2: 'EXPECTED_ACTION',
     3: 'DID_NOT_EXPECT_OK',
     4: 'NOT_IMPLEMENTED_MESSAGE',
 }
-
 
 MOTOR_RANGES = {  # ((min_position, min_span), (max_position, max_span))
         0: ((210, 0), (745, 1000)),
@@ -47,15 +42,11 @@ MOTOR_RANGES = {  # ((min_position, min_span), (max_position, max_span))
         9: ((179, 0), (888, 1000)),
     }
 
-TIMESTAMP_DELTA_RANGE = (-10000, 10000)  # must be same as in Walbi.h
-
-
 MESSAGE_TYPES = {
-    Message.ACTION: ['int16'] * 20,  # two values per motor
-    Message.OBSERVATION: ['int16'] * 11,  # one delta and one per motor
-    Message.REWARD: ['int16', 'int8'],  # raw reward and done
+    Message.ACTION: [['int16', 'int16']] * 10,  # two values per motor
+    Message.STATE: ['int32'] + ['int16'] * 10 + ['int16', 'int8'],  # ts, 10 positions, reward, termination
     Message.ERROR: ['int8'],  # error code
-    Message.TIMESTAMP_OBSERVATION: ['int32'],  # will answer the ts since last sent observation
+    Message.VERSION: ['int8'],
 }
 
 
@@ -64,8 +55,9 @@ MOTOR_RANGES_LOW, MOTOR_RANGES_HIGH = list(zip(*tuple(MOTOR_RANGES.values())))
 POSITIONS_LOW, _ = tuple(zip(*MOTOR_RANGES_LOW))
 POSITIONS_HIGH, _ = tuple(zip(*MOTOR_RANGES_HIGH))
 
-RAW_OBSERVATION_LOW = [TIMESTAMP_DELTA_RANGE[0],] + list(POSITIONS_LOW)
-RAW_OBSERVATION_HIGH = [TIMESTAMP_DELTA_RANGE[1],] + list(POSITIONS_HIGH)
-OBSERVATION_SHAPE = (11,)
+RAW_OBSERVATION_LOW = list(POSITIONS_LOW)
+RAW_OBSERVATION_HIGH = list(POSITIONS_HIGH)
+OBSERVATION_SHAPE = (10,)
 RAW_ACTION_LOW, RAW_ACTION_HIGH = MOTOR_RANGES_LOW, MOTOR_RANGES_HIGH
 ACTION_SHAPE = (10, 2)
+REWARD_SCALING = 1000
