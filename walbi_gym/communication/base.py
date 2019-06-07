@@ -2,6 +2,9 @@ from abc import ABC
 import threading
 import time
 
+import serial
+import socket
+
 from walbi_gym.communication.threads import CommandThread, ListenerThread, CustomQueue, queue
 from walbi_gym.envs import errors
 import walbi_gym.communication.settings as _s
@@ -66,9 +69,6 @@ class BaseInterface(ABC):
         for t in self._threads:
             t.start()
 
-    def _read_byte(self):
-        raise NotImplementedError
-
     def connect(self):
         # Initialize communication with Arduino
         while not self.is_connected:
@@ -102,6 +102,18 @@ class BaseInterface(ABC):
         if arduino_version != _s.PROTOCOL_VERSION:
             raise errors.WalbiProtocolVersionError()
         return True
+    
+    def _read_byte(self):
+        try:
+            bytes_array = bytearray(self.file.read(1))
+        except (serial.SerialException, socket.error):
+            time.sleep(_s.RATE)
+            return None
+        if not bytes_array:
+            time.sleep(_s.RATE)
+            return None
+        byte = bytes_array[0]
+        return byte
 
     def _handle_message(self, message):
         # Only called by threads respecting our _serial_lock

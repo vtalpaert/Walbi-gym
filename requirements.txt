@@ -2,3 +2,4 @@ pyserial
 enum34
 numpy
 gym
+pybluez  # requires libbluetooth-dev

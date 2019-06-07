@@ -1,13 +1,16 @@
 from setuptools import setup
 
 setup(
-    name='walby-gym',
+    name='walbi-gym',
+    url='https://github.com/vtalpaert/Walbi-gym',
     version='0.1.2',
-    packages=['walby_gym'],
+    description='Gym interface for Walbi robot',
+    long_description='Walbi Gym interacts with the Walbi robot following the OpenAI gym API.',
     install_requires=[
         'pyserial',
         'enum34',
         'numpy',
         'gym',
+        'pybluez',  # requires libbluetooth-dev
     ]
 )

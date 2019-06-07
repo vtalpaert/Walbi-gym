@@ -5,7 +5,7 @@ from gym import Env, spaces
 
 import walbi_gym.communication.settings as _s
 from walbi_gym.communication.settings import Message
-from walbi_gym.communication import BaseInterface, SerialInterface
+from walbi_gym.communication import BaseInterface, make_interface
 
 
 def constrain(x, in_min,  in_max, out_min, out_max, clip=False):
@@ -29,12 +29,7 @@ class WalbiEnv(Env):
     reward_range = (-32.768, +32.767)  # linked to reward_scale
 
     def __init__(self, interface='serial', autoconnect=True, verify_version=True, *args, **kwargs):
-        if interface == 'serial':
-            self.interface = SerialInterface(*args, **kwargs)
-        elif interface in ['bluetooth', 'wifi']:
-            raise NotImplementedError('%s is not implemented yet' % interface)
-        elif isinstance(interface, BaseInterface):
-            self.interface = interface
+        self.interface = make_interface(interface)
         if autoconnect and not self.interface.is_connected:
             self.interface.connect()
         if verify_version and self.interface.verify_version():

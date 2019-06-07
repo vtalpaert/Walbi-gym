@@ -22,7 +22,9 @@ env = gym.make('Walbi-v0')
 
 The action space is a Box shaped `(10, 2)`: a target position and a given time span for each of the ten motors.
 
-The observation space is a Box shaped `(11,)` for one time interval between the two last observation (`-1` if invalid) and ten current motor positions.
+The observation space is a Box shaped `(10,)` for ten current motor positions.
+
+A timestamp is provided in the info dictionnary.
 
 ### Arduino compilation
 
@@ -80,6 +82,7 @@ Build Walbi according to [original instructions](https://create.arduino.cc/proje
 
 1. Version 0 is simple motor observation and action
 1. Version 1 adds time interval
+1. Version 2 removes the time interval, it is now directly the timestamp in the info dictionnary
 
 ## Acknowledgements
 
