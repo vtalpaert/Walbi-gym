@@ -1,5 +1,6 @@
 import socket
 from abc import ABC
+from warnings import warn
 
 from walbi_gym.communication.base import BaseInterface
 
@@ -25,6 +26,7 @@ class SocketInterface(BaseInterface, ABC):
 
 class SocketServerInterface(SocketInterface):
     def __init__(self, host_address='', port=1, backlog=1):
+        warn('This interface has not been tested')
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind((host_address, port))
         self.server_socket.listen(backlog)

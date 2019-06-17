@@ -86,8 +86,8 @@ Build Walbi according to [original instructions](https://create.arduino.cc/proje
 
 ## Acknowledgements
 
-This project relies on the [serial communication code](https://github.com/araffin/arduino-robust-serial)
-by Antonin Raffin, as he wrote the [robust serial library](https://medium.com/@araffin/simple-and-robust-computer-arduino-serial-communication-f91b95596788).
-
-Walbi was [designed](https://create.arduino.cc/projecthub/the-inner-geek/walbi-the-walking-biped-8feacd)
-by [Release the Inner Geek](https://releasetheinnergeek.com/).
+1. Data sending relies on the [serial communication code](https://github.com/araffin/arduino-robust-serial)
+by Antonin Raffin, as he wrote the [robust serial library](https://medium.com/@araffin/simple-and-robust-computer-arduino-serial-communication-f91b95596788)
+1. The [ServoBus library](https://github.com/slandis/ServoBus) for Arduino interacts with the DebugBoard
+1. Walbi was [designed](https://create.arduino.cc/projecthub/the-inner-geek/walbi-the-walking-biped-8feacd)
+by [Release the Inner Geek](https://releasetheinnergeek.com/)

@@ -74,10 +74,18 @@ class RecordWrapper(Wrapper):
         return self.env.close()
 
     def flush(self):
+        try:
+            extras = {
+                'version': self.env.version,
+                'motor_ranges': self.env.motor_ranges,
+            }
+        except AttributeError:
+            extras = {}
         makedirs(self.save_to, exist_ok=True)
         savename = self._get_name() + time.strftime(self.file_format)
         savepath = os.path.join(self.save_to, savename)
-        dump_transitions(self.transitions, savepath)
+        print('Saving to', savepath)
+        dump_transitions(self.transitions, savepath, extras=extras)
         self.transitions = []
 
     def _get_name(self):
@@ -91,8 +99,9 @@ class RecordWrapper(Wrapper):
             return 'Env'
 
 
-def dump_transitions(transitions: typing.Sequence[T], filename, to_dict=True):
-    data = {'transitions': []}
+def dump_transitions(transitions: typing.Sequence[T], filename, to_dict=True, extras=None):
+    data = extras if extras else {}
+    data['transitions'] = []
     for t in transitions:
         d = t._asdict()
         if to_dict:
