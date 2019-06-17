@@ -66,6 +66,12 @@ A timestamp is provided in the info dictionnary.
 
 ## Hardware
 
+### Performances
+
+Timing measurements :
+- looping on STEP (computer side) ~ 150 ms
+- looping on Walbi->get_state() (Arduino only) ~ 120 ms
+
 ### Buiding Walbi
 
 Build Walbi according to [original instructions](https://create.arduino.cc/projecthub/the-inner-geek/walbi-the-walking-biped-8feacd).
