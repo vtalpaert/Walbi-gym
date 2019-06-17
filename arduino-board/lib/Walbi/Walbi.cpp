@@ -7,21 +7,20 @@ Message read_message() { return (Message) Serial.read(); }
 
 void write_message(enum Message myMessage)
 {
-	uint8_t* Message = (uint8_t*) &myMessage;
+    uint8_t* Message = (uint8_t*) &myMessage;
     Serial.write(Message, sizeof(uint8_t));
 }
 
-uint16_t last_received_position_;
+State last_state;
 unsigned long timestamp_successfully_sent_observation = 0;
 unsigned long timestamp_gathered_observation = 0;
 signed long delta = 0;
 
-void receive_position_from_debug_board_(uint8_t id, uint8_t command, uint16_t param1, uint16_t param2)
+void Walbi::receive_position_from_debug_board_(uint8_t id, uint8_t command, uint16_t param1, uint16_t param2)
 {
-    (void)id;
     (void)command;
     (void)param2;
-    last_received_position_ = param1;
+    last_state.positions[id] = param1;
 }
 
 void wait_for_serial() // blocking
@@ -34,7 +33,7 @@ void Walbi::read_positions_from_debug_board_(State* state)
     for (uint8_t i = 0; i < MOTOR_NB; i++)
     {
         this->bus_->requestPosition(this->motor_ids[i]);
-        state->positions[i] = last_received_position_;
+        //state->positions[i] = last_received_position_;
     }
 }
 
@@ -92,14 +91,13 @@ void Walbi::act(Action* action)
     }
 }
 
-State Walbi::get_state()
+State* Walbi::get_state()
 {
-    State state;
-    state.timestamp = millis();
-    this->read_positions_from_debug_board_(&state);
-    state.reward = 0;
-    state.done = 0;
-    return state;
+    last_state.timestamp = millis();
+    this->read_positions_from_debug_board_(&last_state);
+    last_state.reward = 0;
+    last_state.done = 0;
+    return &last_state;
 }
 
 bool Walbi::send_state(State* state)
@@ -141,8 +139,8 @@ bool Walbi::handle_messages_from_serial()
             case RESET:
             {
                 write_message(OK);
-                State state = this->get_state();
-                return this->send_state(&state);
+                this->get_state();
+                return this->send_state(&last_state);
             }
             case STEP:
             {
@@ -151,8 +149,8 @@ bool Walbi::handle_messages_from_serial()
                 if (this->receive_action(&action, true))
                 {
                     this->act(&action);
-                    State state = this->get_state();
-                    return this->send_state(&state);
+                    this->get_state();
+                    return this->send_state(&last_state);
                 }
                 else
                 {
@@ -169,8 +167,8 @@ bool Walbi::handle_messages_from_serial()
             case STATE:
             {
                 write_message(OK);
-                State state = this->get_state();
-                return this->send_state(&state);
+                this->get_state();
+                return this->send_state(&last_state);
             }
             case VERSION:
             {
@@ -207,14 +205,37 @@ bool Walbi::handle_messages_from_serial()
             }
         }
     }
+    return false;
 }
 
-Walbi::Walbi(uint8_t DEBUG_BOARD_RX, uint8_t DEBUG_BOARD_TX, long COMPUTER_SERIAL_BAUD, bool auto_connect)
+void Walbi::run(){
+	unsigned long currentMillis = millis();
+	if(currentMillis - this->previousMillisHandlingMessages >= this->interval_HM) {
+		this->previousMillisHandlingMessages = currentMillis;
+		this->handle_messages_from_serial();
+	}
+	if(currentMillis - this->previousMillisGetState >= this->interval_GS) {
+		this->previousMillisGetState = currentMillis;
+		this->get_state();
+	}
+}
+
+Walbi::Walbi(uint8_t DEBUG_BOARD_RX, uint8_t DEBUG_BOARD_TX, long COMPUTER_SERIAL_BAUD, unsigned long FREQUENCY_HM, unsigned long FREQUENCY_GS, bool auto_connect)
 {
-    this->mySerial_ = new SoftwareSerial(DEBUG_BOARD_TX, DEBUG_BOARD_RX); // our RX is connected to the Debug Board TX
+    if(FREQUENCY_HM == 0){
+		this->interval_HM = 0;
+	} else {
+		this->interval_HM = 1000/FREQUENCY_HM;
+	}
+	if(FREQUENCY_GS == 0){
+		this->interval_GS = 0;
+	} else {
+		this->interval_GS = 1000/FREQUENCY_GS;
+	}
+	this->mySerial_ = new SoftwareSerial(DEBUG_BOARD_TX, DEBUG_BOARD_RX); // our RX is connected to the Debug Board TX
     this->mySerial_->begin(SOFTWARE_SERIAL_BAUD); // SoftwareSerial - connects Arduino to Debug Board serial pins (RX->TX, TX->RX, GND->GND)
     this->bus_ = new ServoBus(this->mySerial_, 0);
-    this->bus_->setEventHandler(REPLY_POSITION, receive_position_from_debug_board_);
+    this->bus_->setEventHandler(REPLY_POSITION, this->receive_position_from_debug_board_);
     Serial.begin(COMPUTER_SERIAL_BAUD);
     memcpy(this->motor_ids, MOTOR_IDS, sizeof(this->motor_ids)); // init ids with MOTOR_IDS
     if (auto_connect) { this->connect(); }
