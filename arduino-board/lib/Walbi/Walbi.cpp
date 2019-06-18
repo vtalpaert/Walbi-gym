@@ -12,29 +12,27 @@ void write_message(enum Message myMessage)
 }
 
 State last_state;
-unsigned long timestamp_successfully_sent_observation = 0;
-unsigned long timestamp_gathered_observation = 0;
-signed long delta = 0;
+unsigned long timestamp_last_handled_message = 0;
 
 void Walbi::receive_position_from_debug_board_(uint8_t id, uint8_t command, uint16_t param1, uint16_t param2)
 {
     (void)command;
     (void)param2;
-    last_state.positions[id] = param1;
+    last_state.positions[id] = param1; // TODO find index of array according to id, now we suppose the index and id are the same
 }
 
-void wait_for_serial() // blocking
+void wait_for_serial() // blocking until Serial available
 {
     while (Serial.available() == 0) { delay(1); }
 }
 
-void Walbi::read_positions_from_debug_board_(State* state)
+State* Walbi::read_positions_from_debug_board_()
 {
     for (uint8_t i = 0; i < MOTOR_NB; i++)
     {
         this->bus_->requestPosition(this->motor_ids[i]);
-        //state->positions[i] = last_received_position_;
     }
+    return &last_state;
 }
 
 bool wait_acknowledge()
@@ -94,7 +92,7 @@ void Walbi::act(Action* action)
 State* Walbi::get_state()
 {
     last_state.timestamp = millis();
-    this->read_positions_from_debug_board_(&last_state);
+    this->read_positions_from_debug_board_();
     last_state.reward = 0;
     last_state.done = 0;
     return &last_state;
@@ -139,8 +137,8 @@ bool Walbi::handle_messages_from_serial()
             case RESET:
             {
                 write_message(OK);
-                this->get_state();
-                return this->send_state(&last_state);
+                State* state_ptr = this->refresh_state_if_needed_();
+                return this->send_state(state_ptr);
             }
             case STEP:
             {
@@ -149,8 +147,8 @@ bool Walbi::handle_messages_from_serial()
                 if (this->receive_action(&action, true))
                 {
                     this->act(&action);
-                    this->get_state();
-                    return this->send_state(&last_state);
+                    State* state_ptr = this->refresh_state_if_needed_();
+                    return this->send_state(state_ptr);
                 }
                 else
                 {
@@ -167,8 +165,8 @@ bool Walbi::handle_messages_from_serial()
             case STATE:
             {
                 write_message(OK);
-                this->get_state();
-                return this->send_state(&last_state);
+                State* state_ptr = this->refresh_state_if_needed_();
+                return this->send_state(state_ptr);
             }
             case VERSION:
             {
@@ -208,35 +206,29 @@ bool Walbi::handle_messages_from_serial()
     return false;
 }
 
-void Walbi::run(){
-	unsigned long currentMillis = millis();
-	if(currentMillis - this->previousMillisHandlingMessages >= this->interval_HM) {
-		this->previousMillisHandlingMessages = currentMillis;
-		this->handle_messages_from_serial();
+State* Walbi::refresh_state_if_needed_() {
+    if(millis() - last_state.timestamp >= this->interval_refresh_state_) {
+		return this->get_state();
 	}
-	if(currentMillis - this->previousMillisGetState >= this->interval_GS) {
-		this->previousMillisGetState = currentMillis;
-		this->get_state();
-	}
+    return &last_state;
 }
 
-Walbi::Walbi(uint8_t DEBUG_BOARD_RX, uint8_t DEBUG_BOARD_TX, long COMPUTER_SERIAL_BAUD, unsigned long FREQUENCY_HM, unsigned long FREQUENCY_GS, bool auto_connect)
+void Walbi::run(){
+	if(millis() - timestamp_last_handled_message >= this->interval_read_serial_) {
+		timestamp_last_handled_message = millis();
+		this->handle_messages_from_serial();
+	}
+	this->refresh_state_if_needed_();
+}
+
+Walbi::Walbi(uint8_t debug_board_rx, uint8_t debug_board_tx, long computer_serial_baud, unsigned long interval_read_serial, unsigned long interval_refresh_state, bool auto_connect):
+    interval_read_serial_(interval_read_serial), interval_refresh_state_(interval_refresh_state)
 {
-    if(FREQUENCY_HM == 0){
-		this->interval_HM = 0;
-	} else {
-		this->interval_HM = 1000/FREQUENCY_HM;
-	}
-	if(FREQUENCY_GS == 0){
-		this->interval_GS = 0;
-	} else {
-		this->interval_GS = 1000/FREQUENCY_GS;
-	}
-	this->mySerial_ = new SoftwareSerial(DEBUG_BOARD_TX, DEBUG_BOARD_RX); // our RX is connected to the Debug Board TX
+	this->mySerial_ = new SoftwareSerial(debug_board_tx, debug_board_rx); // our RX is connected to the Debug Board TX
     this->mySerial_->begin(SOFTWARE_SERIAL_BAUD); // SoftwareSerial - connects Arduino to Debug Board serial pins (RX->TX, TX->RX, GND->GND)
     this->bus_ = new ServoBus(this->mySerial_, 0);
     this->bus_->setEventHandler(REPLY_POSITION, this->receive_position_from_debug_board_);
-    Serial.begin(COMPUTER_SERIAL_BAUD);
+    Serial.begin(computer_serial_baud);
     memcpy(this->motor_ids, MOTOR_IDS, sizeof(this->motor_ids)); // init ids with MOTOR_IDS
     if (auto_connect) { this->connect(); }
 }

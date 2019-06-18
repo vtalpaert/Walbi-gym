@@ -60,26 +60,30 @@ class Walbi
 private:
     SoftwareSerial* mySerial_;
     ServoBus* bus_;
-	unsigned long previousMillisHandlingMessages = 0;
-	unsigned long previousMillisGetState = 0;
-    void read_positions_from_debug_board_(State* state);
+    State* read_positions_from_debug_board_();
 	static void receive_position_from_debug_board_(uint8_t id, uint8_t command, uint16_t param1, uint16_t param2);
+    State* refresh_state_if_needed_();
+
+    unsigned long interval_read_serial_; // interval at which to handle messages
+	unsigned long interval_refresh_state_; // interval at which to get state
 public:
     uint8_t motor_ids[MOTOR_NB];
     bool is_connected = false;
     bool connect(); // run this in setup
 
-    Walbi(uint8_t DEBUG_BOARD_RX, uint8_t DEBUG_BOARD_TX, long COMPUTER_SERIAL_BAUD, unsigned long FREQUENCY_HM = 0, unsigned long FREQUENCY_GS = 0, bool auto_connect=true);
+    Walbi(uint8_t debug_board_rx, uint8_t debug_board_tx, long computer_serial_baud, unsigned long interval_read_serial = 0, unsigned long interval_refresh_state = 0, bool auto_connect=true);
+
+    // interact with hardware
     State* get_state(); // collect from sensors
-    void act(Action* action);
-	unsigned long interval_HM; //Frequency at which to handle messages. Computed from the frequency in Hz defined in constructor
-	unsigned long interval_GS; //Frequency at which to get state. Computed from the frequency in Hz defined in constructor
+    void act(Action* action); // send to actuators
 
+    // Serial communication
     bool handle_messages_from_serial();
-	void run();
-
     bool receive_action(Action* action, bool listen_for_message);
     bool send_state(State* state);
+
+    // run in loop
+    void run();
 };
 
 } // namespace
