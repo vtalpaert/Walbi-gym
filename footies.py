@@ -17,7 +17,7 @@ def print_positions(obs_list):
 
 def record_one_position(walbi):
     input('cut power and move walbi')
-    obs = walbi._ask_observation()
+    obs, _, _, _ = walbi._ask_state()
     action = np.zeros((10, 2))
     action[:, 0] = obs
     action[:, 1] = 1

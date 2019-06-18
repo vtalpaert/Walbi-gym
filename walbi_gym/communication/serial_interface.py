@@ -4,6 +4,7 @@ import glob
 
 import serial
 
+from walbi_gym.envs.errors import WalbiError
 import walbi_gym.communication.settings as _s
 from walbi_gym.communication.base import BaseInterface
 
@@ -34,6 +35,9 @@ def get_serial_ports():
 def open_serial_port(serial_port=None, baudrate=115200, timeout=0, write_timeout=0):
     # Open serial port (for communication with Arduino)
     if serial_port is None:
+        ports = get_serial_ports()
+        if len(ports) == 0:
+            raise WalbiError('No serial port found')
         serial_port = get_serial_ports()[0]
     # timeout=0 non-blocking mode, return immediately in any case, returning zero or more,
     # up to the requested number of bytes

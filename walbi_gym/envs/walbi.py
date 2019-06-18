@@ -29,7 +29,7 @@ class WalbiEnv(Env):
     reward_range = (-32.768, +32.767)  # linked to reward_scale
 
     def __init__(self, interface='serial', autoconnect=True, verify_version=True, *args, **kwargs):
-        self.interface = make_interface(interface)
+        self.interface = make_interface(interface, *args, **kwargs)
         if autoconnect and not self.interface.is_connected:
             self.interface.connect()
         if verify_version and self.interface.verify_version():
@@ -58,14 +58,16 @@ class WalbiEnv(Env):
                     cls.action_space.low[index][0],
                     cls.action_space.high[index][0],
                     cls.raw_action_space.low[index][0],
-                    cls.raw_action_space.high[index][0]
+                    cls.raw_action_space.high[index][0],
+                    clip=True
                 )),
                 int(constrain(
                     span,
                     cls.action_space.low[index][1],
                     cls.action_space.high[index][1],
                     cls.raw_action_space.low[index][1],
-                    cls.raw_action_space.high[index][1]
+                    cls.raw_action_space.high[index][1],
+                    clip=True
                 ))
             ) for index, (position, span) in enumerate(action)]
         return int16_action

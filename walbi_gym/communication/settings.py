@@ -4,6 +4,9 @@ PROTOCOL_VERSION = 2  # int: protocol version
 
 RATE = 1 / 2000  # 2000 Hz (limit the rate of communication with the arduino)
 
+COMMUNICATION_DELAY = 0
+COMMUNICATION_TIMEOUT = 1  # TODO try 0.2
+
 class Message(IntEnum):
     """
     Pre-defined messages

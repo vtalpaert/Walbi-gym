@@ -1,6 +1,7 @@
 from abc import ABC
 import threading
 import time
+import typing
 
 import serial
 import socket
@@ -45,8 +46,8 @@ def write_types(type_list, data, file):
 
 
 class BaseInterface(ABC):
-    delay = 0.1  # delay for a message to be sent # TODO test lower
-    expect_or_raise_timeout = 1
+    delay = _s.COMMUNICATION_DELAY  # delay for a message to be sent
+    expect_or_raise_timeout = _s.COMMUNICATION_TIMEOUT
     debug = False
     file = None
     is_connected = False
@@ -88,17 +89,18 @@ class BaseInterface(ABC):
             self.is_connected = True
         time.sleep(2 * self.delay)
         self._received_queue.clear()
-        try:  # if we still receive CONNECT, send that we consider ourselves ALREADY_CONNECTED
-            self.expect_or_raise(Message.CONNECT)
-            self.put_command(Message.ALREADY_CONNECTED)
-        except errors.WalbiError:
-            pass
+        #try:  # if we still receive CONNECT, send that we consider ourselves ALREADY_CONNECTED
+        #    self.expect_or_raise(Message.CONNECT)
+        #    print('Sending ALREADY_CONNECTED')
+        #    self.put_command(Message.ALREADY_CONNECTED)
+        #except errors.WalbiError:
+        #    pass
         time.sleep(0.5)
         self._received_queue.clear()
 
     def verify_version(self):
-        self.put_command(Message.VERSION, param=_s.PROTOCOL_VERSION, expect_ok=True)
-        arduino_version = self.expect_or_raise(Message.VERSION)
+        self.put_command(Message.VERSION, param=[_s.PROTOCOL_VERSION], expect_ok=True)
+        arduino_version = self.expect_or_raise(Message.VERSION)[0]
         if arduino_version != _s.PROTOCOL_VERSION:
             raise errors.WalbiProtocolVersionError()
         return True
@@ -119,21 +121,16 @@ class BaseInterface(ABC):
         # Only called by threads respecting our _serial_lock
         if self.debug:
             print('Listener thread:', message, 'just in')
-        if message in (Message.STATE, Message.ERROR):
-            try:
-                self._received_queue.put(
-                    (
-                        message,
-                        read_types(_s.MESSAGE_TYPES[message], self.file)
-                    )
+        if message in _s.MESSAGE_TYPES:
+            self._received_queue.put(
+                (
+                    message,
+                    read_types(_s.MESSAGE_TYPES[message], self.file)
                 )
-            except KeyError as e:
-                raise NotImplementedError(str(message)) from e
+            )
             self.put_command(Message.OK)
-        elif message in (Message.CONNECT, Message.ALREADY_CONNECTED, Message.OK):
-            self._received_queue.put((message, None))
         else:
-            print('%s was not expected, ignored' % message)
+            self._received_queue.put((message, None))
 
     def _send_message(self, message, param):
         # Only called by threads respecting our _serial_lock
@@ -153,7 +150,7 @@ class BaseInterface(ABC):
         if expect_ok:
             self.expect_or_raise(Message.OK)
 
-    def expect_or_raise(self, expected_message: Message):
+    def expect_or_raise(self, expected_message: Message) -> typing.Sequence:
         if self.debug:
             print('expect', expected_message)
         try:
@@ -161,7 +158,7 @@ class BaseInterface(ABC):
         except queue.Empty as e:
             raise errors.WalbiTimeoutError(self.expect_or_raise_timeout, expected_message) from e
         if message == Message.ERROR:
-            raise errors.WalbiArduinoError(int(param))
+            raise errors.WalbiArduinoError(param[0])
         if message != expected_message:
             raise errors.WalbiUnexpectedMessageError(message, expected_message=expected_message)
         if self.debug:
@@ -169,7 +166,7 @@ class BaseInterface(ABC):
         return param
 
     def close(self):
-        print('Closing serial communication...')
+        print('Closing communication interface...')
         self._exit_event.set()
         self._command_queue.clear()
         self.is_connected = False
