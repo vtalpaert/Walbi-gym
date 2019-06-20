@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <SoftwareSerial.h>
 
 #include "Walbi.h"
 
@@ -16,5 +15,5 @@ void setup()
 
 void loop()
 {
-    walbi->handle_messages_from_serial();
+    walbi->run();
 }
