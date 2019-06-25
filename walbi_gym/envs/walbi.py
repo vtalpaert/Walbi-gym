@@ -15,6 +15,8 @@ def constrain(x, in_min,  in_max, out_min, out_max, clip=False):
 
 
 _DecimalList = TypeVar('DecimalList', np.ndarray, Sequence[float])
+Observation = TypeVar('Observation', np.ndarray)
+Action = TypeVar('Action', _DecimalList)
 
 
 class WalbiEnv(Env):
@@ -25,8 +27,6 @@ class WalbiEnv(Env):
     raw_action_space = spaces.Box(low=np.array(_s.RAW_ACTION_LOW), high=np.array(_s.RAW_ACTION_HIGH), dtype=np.int16)
     observation_space = spaces.Box(low=-1, high=1, shape=_s.OBSERVATION_SHAPE, dtype=np.float16)
     raw_observation_space = spaces.Box(low=np.array(_s.RAW_OBSERVATION_LOW), high=np.array(_s.RAW_OBSERVATION_HIGH), dtype=np.int16)
-    reward_scale = _s.REWARD_SCALING
-    reward_range = (-32.768, +32.767)  # linked to reward_scale
 
     def __init__(self, interface='serial', autoconnect=True, verify_version=True, *args, **kwargs):
         self.interface = make_interface(interface, *args, **kwargs)
@@ -35,22 +35,25 @@ class WalbiEnv(Env):
         if verify_version and self.interface.verify_version():
             print('Version OK')
 
-    def reset(self):
+    def reset(self) -> Observation:
         self.interface.put_command(Message.RESET, expect_ok=True)
-        observation, _, _, _ = self._receive_state()
-        return observation
+        state = self._receive_state()
+        return self._state_to_observation(state)
 
-    def step(self, action: _DecimalList):
-        self.interface.put_command(Message.STEP, expect_ok=True)
-        self._send_action(action)
-        observation, reward, done, info = self._receive_state()
+    def step(self, action: Action) -> Tuple[Observation, float, bool, dict]:
+        int16_action = self._convert_action_float_to_int(action)
+        self.interface.put_command(Message.STEP, param=int16_action, expect_ok=True)
+        state = self._receive_state()
+        observation = self._state_to_observation(state)
+        reward, done, info = self._state_interpretation(state)
         return observation, reward, done, info
 
-    def _send_action(self, action: _DecimalList):
-        self._send_raw_action(self._convert_action_float_to_int(action))
+    def _send_action(self, action: Action):
+        int16_action = self._convert_action_float_to_int(action)
+        self.interface.put_command(Message.ACTION, param=int16_action, expect_ok=True)
 
     @classmethod
-    def _convert_action_float_to_int(cls, action: _DecimalList) -> List[Tuple[int, int]]:
+    def _convert_action_float_to_int(cls, action: Action) -> List[Tuple[int, int]]:
         int16_action = [
             (
                 int(constrain(
@@ -72,17 +75,8 @@ class WalbiEnv(Env):
             ) for index, (position, span) in enumerate(action)]
         return int16_action
 
-    def _send_raw_action(self, int16_action: Sequence):
-        self.interface.put_command(Message.ACTION, param=int16_action, expect_ok=True)
-
-    def _receive_state(self) -> Tuple[np.ndarray, float, bool, dict]:
-        raw_observation, raw_reward, raw_termination, info = self._receive_raw_state()
-        observation = self._convert_obs_int_to_float(raw_observation)
-        reward, done = self._convert_reward_int_to_types(raw_reward, raw_termination)
-        return observation, reward, done, info
-
     @classmethod
-    def _convert_obs_int_to_float(cls, raw_obs: Sequence[int]) -> np.ndarray:
+    def _convert_obs_int_to_float(cls, raw_obs: Sequence[int]) -> Observation:
         obs = np.array([
             constrain(
                 raw_value,
@@ -94,13 +88,21 @@ class WalbiEnv(Env):
         ], dtype=np.float16)
         return obs
 
-    def _convert_reward_int_to_types(self, raw_reward: int, raw_termination: int) -> Tuple[float, bool]:
-        return raw_reward / self.reward_scale, bool(raw_termination)
+    def _state_interpretation(self, state) -> Tuple[float, bool, dict]:
+        """Calculates reward and termination. Provides the info dict"""
+        timestamp = state[0]
+        reward, termination = 0, False  # TODO
+        info = {'timestamp': timestamp}
+        return reward, termination, info
 
-    def _receive_raw_state(self) -> Tuple[List[int], int, int, dict]:
+    def _receive_state(self):
         state = self.interface.expect_or_raise(Message.STATE)
-        timestamp, raw_observation, raw_reward, raw_termination = state[0], state[1:11], state[11], state[12]
-        return raw_observation, raw_reward, raw_termination, {'timestamp': timestamp}
+        return state
+
+    def _state_to_observation(self, state) -> Observation:
+        raw_observation = state[1:]
+        observation = self._convert_obs_int_to_float(raw_observation)
+        return observation
 
     def _ask_state(self):
         self.interface.put_command(Message.STATE, expect_ok=True)

@@ -10,7 +10,7 @@
 namespace Walbi
 {
 
-#define PROTOCOL_VERSION 2
+#define PROTOCOL_VERSION 3
 
 const long SOFTWARE_SERIAL_BAUD = 115200;  // Baudrate to DebugBoard
 const uint8_t MOTOR_NB = 10;
@@ -46,8 +46,6 @@ struct State
 {
     unsigned long timestamp;
     uint16_t positions[MOTOR_NB];
-    int16_t reward;
-    int8_t done;
 };
 
 struct Action

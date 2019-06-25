@@ -63,6 +63,7 @@ bool Walbi::receive_action(Action* action, bool listen_for_message)
 {
     if (listen_for_message)
     {
+        // we wait for an ACTION message
         wait_for_serial();
         Message message_received = read_message();
         if(message_received != ACTION)
@@ -93,8 +94,6 @@ State* Walbi::get_state()
 {
     last_state.timestamp = millis();
     this->read_positions_from_debug_board_();
-    last_state.reward = 0;
-    last_state.done = 0;
     return &last_state;
 }
 
@@ -106,8 +105,6 @@ bool Walbi::send_state(State* state)
     {
         write_i16(state->positions[i]);
     }
-    write_i16(state->reward);
-    write_i8(state->done);
     return wait_acknowledge();
 }
 
@@ -142,9 +139,8 @@ bool Walbi::handle_messages_from_serial()
             }
             case STEP:
             {
-                write_message(OK);
                 Action action;
-                if (this->receive_action(&action, true))
+                if (this->receive_action(&action, false))
                 {
                     this->act(&action);
                     State* state_ptr = this->refresh_state_if_needed_();

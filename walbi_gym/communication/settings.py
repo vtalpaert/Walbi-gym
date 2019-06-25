@@ -1,6 +1,6 @@
 from enum import IntEnum
 
-PROTOCOL_VERSION = 2  # int: protocol version
+PROTOCOL_VERSION = 3  # int: protocol version
 
 RATE = 1 / 2000  # 2000 Hz (limit the rate of communication with the arduino)
 
@@ -46,11 +46,12 @@ MOTOR_RANGES = {  # ((min_position, min_span), (max_position, max_span))
     }
 
 MESSAGE_TYPES = {
-    Message.ACTION: [['int16', 'int16']] * 10,  # two values per motor
-    Message.STATE: ['int32'] + ['int16'] * 10 + ['int16', 'int8'],  # ts, 10 positions, reward, termination
+    Message.STEP: [['int16', 'int16']] * 10,  # two values per motor # for Message.ACTION as well
+    Message.STATE: ['int32'] + ['int16'] * 10,  # ts, 10 positions
     Message.ERROR: ['int8'],  # error code
     Message.VERSION: ['int8'],
 }
+MESSAGE_TYPES[Message.ACTION] = MESSAGE_TYPES[Message.STEP]
 
 
 # spaces definitions
@@ -63,4 +64,3 @@ RAW_OBSERVATION_HIGH = list(POSITIONS_HIGH)
 OBSERVATION_SHAPE = (10,)
 RAW_ACTION_LOW, RAW_ACTION_HIGH = MOTOR_RANGES_LOW, MOTOR_RANGES_HIGH
 ACTION_SHAPE = (10, 2)
-REWARD_SCALING = 1000
