@@ -8,8 +8,8 @@ import socket
 
 from walbi_gym.communication.threads import CommandThread, ListenerThread, CustomQueue, queue
 from walbi_gym.envs import errors
-import walbi_gym.communication.settings as _s
-from walbi_gym.communication.settings import Message
+import walbi_gym.envs.definitions as _s  # settings
+from walbi_gym.envs.definitions import Message
 from walbi_gym.communication import robust_serial
 
 

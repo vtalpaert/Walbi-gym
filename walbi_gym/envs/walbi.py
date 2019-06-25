@@ -3,8 +3,8 @@ from typing import TypeVar, List, Tuple, Sequence
 import numpy as np
 from gym import Env, spaces
 
-import walbi_gym.communication.settings as _s
-from walbi_gym.communication.settings import Message
+import walbi_gym.envs.definitions as _s  # settings
+from walbi_gym.envs.definitions import Message
 from walbi_gym.communication import BaseInterface, make_interface
 
 
@@ -15,8 +15,8 @@ def constrain(x, in_min,  in_max, out_min, out_max, clip=False):
 
 
 _DecimalList = TypeVar('DecimalList', np.ndarray, Sequence[float])
-Observation = TypeVar('Observation', np.ndarray)
-Action = TypeVar('Action', _DecimalList)
+Observation = np.ndarray
+Action = _DecimalList
 
 
 class WalbiEnv(Env):

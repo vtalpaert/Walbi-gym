@@ -6,8 +6,8 @@ try:
 except ImportError:
     import Queue as queue
 
-from .settings import Message
-from .settings import RATE as rate
+from walbi_gym.envs.definitions import Message
+from walbi_gym.envs.definitions import RATE as rate
 
 
 # From https://stackoverflow.com/questions/6517953/clear-all-items-from-the-queue

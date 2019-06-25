@@ -5,7 +5,7 @@ import glob
 import serial
 
 from walbi_gym.envs.errors import WalbiError
-import walbi_gym.communication.settings as _s
+import walbi_gym.envs.definitions as _s  # settings
 from walbi_gym.communication.base import BaseInterface
 
 
