@@ -2,7 +2,6 @@
 #define WALBI_H
 
 #include <Arduino.h>
-#include <SoftwareSerial.h>
 
 #include "../ServoBus/ServoBus.h"
 #include "../robust_serial/robust_serial.h"
@@ -12,7 +11,7 @@ namespace Walbi
 
 #define PROTOCOL_VERSION 3
 
-const long SOFTWARE_SERIAL_BAUD = 115200;  // Baudrate to DebugBoard
+const long DEBUG_BOARD_SERIAL_BAUD = 115200;  // Baudrate to DebugBoard
 const uint8_t MOTOR_NB = 10;
 const uint8_t MOTOR_IDS[MOTOR_NB] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
@@ -56,7 +55,6 @@ struct Action
 class Walbi
 {
 private:
-    SoftwareSerial* mySerial_;
     ServoBus* bus_;
     State* read_positions_from_debug_board_();
 	static void receive_position_from_debug_board_(uint8_t id, uint8_t command, uint16_t param1, uint16_t param2);

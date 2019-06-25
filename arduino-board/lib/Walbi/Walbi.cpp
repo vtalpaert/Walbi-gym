@@ -220,9 +220,8 @@ void Walbi::run(){
 Walbi::Walbi(uint8_t debug_board_rx, uint8_t debug_board_tx, long computer_serial_baud, unsigned long interval_read_serial, unsigned long interval_refresh_state, bool auto_connect):
     interval_read_serial_(interval_read_serial), interval_refresh_state_(interval_refresh_state)
 {
-	this->mySerial_ = new SoftwareSerial(debug_board_tx, debug_board_rx); // our RX is connected to the Debug Board TX
-    this->mySerial_->begin(SOFTWARE_SERIAL_BAUD); // SoftwareSerial - connects Arduino to Debug Board serial pins (RX->TX, TX->RX, GND->GND)
-    this->bus_ = new ServoBus(this->mySerial_, 0);
+    Serial2.begin(DEBUG_BOARD_SERIAL_BAUD); // SoftwareSerial - connects Arduino to Debug Board serial pins (RX->TX, TX->RX, GND->GND)
+    this->bus_ = new ServoBus(Serial2, 0);
     this->bus_->setEventHandler(REPLY_POSITION, this->receive_position_from_debug_board_);
     Serial.begin(computer_serial_baud);
     memcpy(this->motor_ids, MOTOR_IDS, sizeof(this->motor_ids)); // init ids with MOTOR_IDS
