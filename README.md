@@ -71,6 +71,7 @@ A timestamp is provided in the info dictionnary.
 Timing measurements :
 - looping on STEP (computer side) ~ 150 ms
 - looping on Walbi->get_state() (Arduino only) ~ 120 ms
+- test with Arduino Mega (Hardware Serial Port) ~ 215ms (get state only), 225 (step)
 
 ### Buiding Walbi
 
