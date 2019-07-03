@@ -1,5 +1,3 @@
-#include <Arduino.h>
-
 #include "Walbi.h"
 
 #define SERIAL_BAUD 115200  // Baudrate to PC

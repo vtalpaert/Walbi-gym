@@ -1,5 +1,7 @@
 .vscode/
 .idea/
 bin
+slave.cpp
+Makefile
 __pycache__
 *.pyc

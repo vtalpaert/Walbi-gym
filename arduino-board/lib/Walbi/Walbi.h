@@ -5,15 +5,15 @@
 
 #include <Stream.h>
 
-#include "../ServoBus/ServoBus.h"
-#include "../robust_serial/robust_serial.h"
+#include "ServoBus.h"
+#include "robust_serial.h"
 
 namespace walbi_ns
 {
 
 #define PROTOCOL_VERSION 3
 
-const long SOFTWARE_SERIAL_BAUD = 115200;  // Baudrate to DebugBoard
+const long DEBUG_BOARD_BAUD = 115200;  // Baudrate to DebugBoard
 const uint8_t MOTOR_NB = 10;
 const uint8_t MOTOR_IDS[MOTOR_NB] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 

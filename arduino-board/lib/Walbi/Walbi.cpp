@@ -225,7 +225,7 @@ Walbi::Walbi(uint8_t debugBoardRx, uint8_t debugBoardTx, long computerSerialBaud
     intervalReadSerial_(intervalReadSerial), intervalRefreshState_(intervalRefreshState)
 {
 	servoBusStream_ = new SoftwareSerial(debugBoardTx, debugBoardRx); // our RX is connected to the Debug Board TX
-    servoBusStream_->begin(SOFTWARE_SERIAL_BAUD); // SoftwareSerial - connects Arduino to Debug Board serial pins (RX->TX, TX->RX, GND->GND)
+    servoBusStream_->begin(DEBUG_BOARD_BAUD); // SoftwareSerial - connects Arduino to Debug Board serial pins (RX->TX, TX->RX, GND->GND)
     this->servoBus_ = new ServoBus(servoBusStream_, 0);
     this->servoBus_->setEventHandler(REPLY_POSITION, this->receivePositionFromDebugBoard_);
     Serial.begin(computerSerialBaud);
