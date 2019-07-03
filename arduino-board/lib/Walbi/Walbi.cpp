@@ -243,4 +243,4 @@ Walbi::Walbi(Stream* debugBoardStream, long computerSerialBaud, unsigned long in
     if (autoConnect) { this->connect(); }
 }
 
-} // namespace
+} // namespace walbi_ns

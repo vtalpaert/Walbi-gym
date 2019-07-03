@@ -85,5 +85,5 @@ public:
     void run();
 };
 
-} // namespace
-#endif
+} // namespace walbi_ns
+#endif // WALBI_H
