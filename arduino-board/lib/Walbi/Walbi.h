@@ -2,12 +2,13 @@
 #define WALBI_H
 
 #include <Arduino.h>
-#include <SoftwareSerial.h>
+
+#include <Stream.h>
 
 #include "../ServoBus/ServoBus.h"
 #include "../robust_serial/robust_serial.h"
 
-namespace Walbi
+namespace walbi_ns
 {
 
 #define PROTOCOL_VERSION 3
@@ -56,29 +57,29 @@ struct Action
 class Walbi
 {
 private:
-    SoftwareSerial* mySerial_;
-    ServoBus* bus_;
-    State* read_positions_from_debug_board_();
-	static void receive_position_from_debug_board_(uint8_t id, uint8_t command, uint16_t param1, uint16_t param2);
-    State* refresh_state_if_needed_();
+    ServoBus* servoBus_;
+    State* readPositionsFromDebugBoard_();
+	static void receivePositionFromDebugBoard_(uint8_t id, uint8_t command, uint16_t param1, uint16_t param2);
+    State* refreshStateIfNeeded_();
 
-    unsigned long interval_read_serial_; // interval at which to handle messages
-	unsigned long interval_refresh_state_; // interval at which to get state
+    unsigned long intervalReadSerial_; // interval at which to handle messages
+	unsigned long intervalRefreshState_; // interval at which to get state
 public:
-    uint8_t motor_ids[MOTOR_NB];
-    bool is_connected = false;
+    uint8_t motorIds[MOTOR_NB];
+    bool isConnected = false;
     bool connect(); // run this in setup
 
-    Walbi(uint8_t debug_board_rx, uint8_t debug_board_tx, long computer_serial_baud, unsigned long interval_read_serial = 0, unsigned long interval_refresh_state = 0, bool auto_connect=true);
+    Walbi(uint8_t debugBoardRx, uint8_t debugBoardTx, long computerSerialBaud, unsigned long intervalReadSerial = 0, unsigned long intervalRefreshState = 0, bool autoConnect = true);
+    Walbi(Stream* debugBoardStream, long computerSerialBaud, unsigned long intervalReadSerial = 0, unsigned long intervalRefreshState = 0, bool autoConnect = true);
 
     // interact with hardware
-    State* get_state(); // collect from sensors
+    State* getState(); // collect from sensors
     void act(Action* action); // send to actuators
 
     // Serial communication
-    bool handle_messages_from_serial();
-    bool receive_action(Action* action, bool listen_for_message);
-    bool send_state(State* state);
+    bool handleMessagesFromSerial();
+    bool receiveAction(Action* action);
+    bool sendState(State* state);
 
     // run in loop
     void run();
