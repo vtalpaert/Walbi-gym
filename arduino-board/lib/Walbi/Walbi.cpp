@@ -22,6 +22,7 @@ void Walbi::receivePositionFromDebugBoard_(uint8_t id, uint8_t command, uint16_t
     (void)command;
     (void)param2;
     lastState_.positions[id] = param1;
+    lastState_.is_position_updated[id] = true;
     // TODO find index of array according to id, now we suppose the index and id are the same
     // TODO do something if receiving failed
 }
@@ -33,6 +34,7 @@ void waitForSerial() // blocking until Serial available
 
 State* Walbi::readPositionsFromDebugBoard_()
 {
+    memset(lastState_.is_position_updated, 0, sizeof(bool) * MOTOR_NB);
     for (uint8_t i = 0; i < MOTOR_NB; i++)
     {
         this->servoBus_->requestPosition(this->motorIds[i]);
@@ -98,6 +100,7 @@ bool Walbi::sendState(State* state)
     for (uint8_t i = 0; i < MOTOR_NB; i++)
     {
         write_i16(state->positions[i]);
+        write_i8(state->is_position_updated[i]);
     }
     return waitAcknowledge();
 }

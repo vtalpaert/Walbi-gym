@@ -91,8 +91,9 @@ class WalbiEnv(Env):
     def _state_interpretation(self, state) -> Tuple[float, bool, dict]:
         """Calculates reward and termination. Provides the info dict"""
         timestamp = state[0]
+        is_position_updated = [bool(state[update_flag_index]) for update_flag_index in range(2, 21, 2)]
         reward, termination = 0, False  # TODO
-        info = {'timestamp': timestamp}
+        info = {'timestamp': timestamp, 'is_position_updated': is_position_updated}
         return reward, termination, info
 
     def _receive_state(self):
@@ -100,7 +101,7 @@ class WalbiEnv(Env):
         return state
 
     def _state_to_observation(self, state) -> Observation:
-        raw_observation = state[1:]
+        raw_observation = [state[position_index] for position_index in range(1, 20, 2)]
         observation = self._convert_obs_int_to_float(raw_observation)
         return observation
 
