@@ -5,3 +5,5 @@ slave.cpp
 Makefile
 __pycache__
 *.pyc
+*.egg-info
+test/

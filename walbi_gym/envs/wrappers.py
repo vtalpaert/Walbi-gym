@@ -1,14 +1,21 @@
+__dependency_name__ = 'recording'
+
 import typing
 import time
 import os.path
 from os import makedirs
 
-from ruamel.yaml import YAML
 import numpy as np
 from gym import Wrapper
 
+try:
+    from ruamel.yaml import YAML
+    yaml = YAML()   # typ='safe', if not specfied, is 'rt' (round-trip)
+    __has_yaml__ = True
+except ImportError:
+    __has_yaml__ = False
 
-yaml = YAML()   # typ='safe', if not specfied, is 'rt' (round-trip)
+from walbi_gym.envs.errors import dependency_required
 
 
 class Transition(typing.NamedTuple):
@@ -37,6 +44,7 @@ T = typing.TypeVar('T', Transition, RawTransition)
 class RecordWrapper(Wrapper):
     file_format = '-%Y-%m-%d-%H-%M.yaml'
 
+    @dependency_required(dependency=__dependency_name__, condition=__has_yaml__)
     def __init__(self, env, save_to_folder: str):
         self.save_to = save_to_folder
         self.step_counter = 0
@@ -99,6 +107,7 @@ class RecordWrapper(Wrapper):
             return 'Env'
 
 
+@dependency_required(dependency=__dependency_name__, condition=__has_yaml__)
 def dump_transitions(transitions: typing.Sequence[T], filename, to_dict=True, extras=None):
     data = extras if extras else {}
     data['transitions'] = []
@@ -120,7 +129,10 @@ def dump_transitions(transitions: typing.Sequence[T], filename, to_dict=True, ex
         yaml.dump(data, f)
 
 
+@dependency_required(dependency=__dependency_name__, condition=__has_yaml__)
 def load_transitions(filename) -> typing.Sequence[T]:
+    if not __has_yaml:
+        raise WalbiMissingDependencyError(__dependency_name__)
     with open(filename) as f:
         data = yaml.load(f)
     transitions = []

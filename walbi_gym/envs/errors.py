@@ -1,3 +1,5 @@
+import inspect
+
 from gym.error import Error
 
 from walbi_gym.envs.definitions import ERROR_CODES
@@ -37,3 +39,20 @@ class WalbiUnexpectedMessageError(WalbiError):
         self.expected_message = expected_message
         message = 'Expected %s but got %s' % (expected_message, received_message)
         super().__init__(message, received_message, *args)
+
+
+class WalbiMissingDependencyError(Error):
+    """Error when missing optionnal dependency"""
+    def __init__(self, dependency, *args):
+        message = 'You are missing a dependency, run "pip install -e .[%s]"' % str(dependency)
+        super().__init__(message, *args)
+
+
+def dependency_required(*, dependency, condition):
+    def decorator(fn):
+        def decorated(*args, **kwargs):
+            if condition:
+                return fn(*args, **kwargs)
+            raise WalbiMissingDependencyError(dependency)
+        return decorated
+    return decorator
