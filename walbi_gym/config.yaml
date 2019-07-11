@@ -1,0 +1,54 @@
+communication:
+  thread_rate: 0.0005  # [s] 2000 Hz (limit the rate of communication with the arduino)
+  delay_flush_message: 0  # [s] give time to the arduino to read and react to a message before expecting a reaction
+  timeout_expect_message: 0.5  # [s] raise when a message is not received in given time
+  baud_rate: 115200  # baud rate between computer and arduino
+
+motors:
+  ranges:
+    positions:  # [] position encoder ticks
+      low:
+        - 210
+        - 367
+        - 423
+        - 607
+        - 157
+        - 103
+        - 560
+        - 0
+        - 372
+        - 179
+      high:
+        - 745
+        - 569
+        - 1000
+        - 886
+        - 868
+        - 659
+        - 681
+        - 595
+        - 630
+        - 888
+    span:  # [ms]
+      low:
+        - 0
+        - 0
+        - 0
+        - 0
+        - 0
+        - 0
+        - 0
+        - 0
+        - 0
+        - 0
+      high:
+        - 1000
+        - 1000
+        - 1000
+        - 1000
+        - 1000
+        - 1000
+        - 1000
+        - 1000
+        - 1000
+        - 1000

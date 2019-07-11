@@ -8,9 +8,9 @@ import socket
 
 from walbi_gym.communication.threads import CommandThread, ListenerThread, CustomQueue, queue
 from walbi_gym.envs import errors
-import walbi_gym.envs.definitions as _s  # settings
-from walbi_gym.envs.definitions import Message
+from walbi_gym.protocol import Message
 from walbi_gym.communication import robust_serial
+from walbi_gym.configuration import config
 
 
 MAP_TYPE_READ = {
@@ -46,8 +46,8 @@ def write_types(type_list, data, file):
 
 
 class BaseInterface(ABC):
-    delay = _s.COMMUNICATION_DELAY  # delay for a message to be sent
-    expect_or_raise_timeout = _s.COMMUNICATION_TIMEOUT
+    delay = config['communication']['delay_flush_message']  # delay for a message to be sent
+    expect_or_raise_timeout = config['communication']['timeout_expect_message']
     debug = False
     file = None
     is_connected = False

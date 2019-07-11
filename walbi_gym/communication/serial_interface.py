@@ -5,7 +5,7 @@ import glob
 import serial
 
 from walbi_gym.envs.errors import WalbiError
-import walbi_gym.envs.definitions as _s  # settings
+from walbi_gym.configuration import config
 from walbi_gym.communication.base import BaseInterface
 
 
@@ -32,22 +32,19 @@ def get_serial_ports():
     return results
 
 
-def open_serial_port(serial_port=None, baudrate=115200, timeout=0, write_timeout=0):
-    # Open serial port (for communication with Arduino)
-    if serial_port is None:
-        ports = get_serial_ports()
-        if len(ports) == 0:
-            raise WalbiError('No serial port found')
-        serial_port = get_serial_ports()[0]
-    # timeout=0 non-blocking mode, return immediately in any case, returning zero or more,
-    # up to the requested number of bytes
-    return serial.Serial(port=serial_port, baudrate=baudrate, timeout=timeout, writeTimeout=write_timeout)
-
-
 class SerialInterface(BaseInterface):
-    def __init__(self, serial_port=None, baudrate=115200):
+    def __init__(self, serial_port=None, baudrate=None):
+        if baudrate is None:
+            baudrate = config['communication']['baud_rate']
+        if serial_port is None:
+            ports = get_serial_ports()
+            if len(ports) == 0:
+                raise WalbiError('No serial port found')
+            serial_port = get_serial_ports()[0]
         try:
-            self.file = open_serial_port(serial_port=serial_port, baudrate=baudrate, timeout=None)
+            # timeout=0 non-blocking mode, return immediately in any case, returning zero or more,
+            # up to the requested number of bytes
+            self.file = serial.Serial(port=serial_port, baudrate=baudrate, timeout=0, writeTimeout=0)
         except Exception as e:
             raise e
         super(SerialInterface, self).__init__()

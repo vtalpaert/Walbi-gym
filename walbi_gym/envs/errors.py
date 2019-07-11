@@ -2,7 +2,7 @@ import inspect
 
 from gym.error import Error
 
-from walbi_gym.envs.definitions import ERROR_CODES
+from walbi_gym.protocol import ERROR_CODES
 
 
 class WalbiError(Error):

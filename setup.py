@@ -2,7 +2,6 @@ from setuptools import setup
 
 extras = {
   'bluetooth': ['pybluez'],  # requires libbluetooth-dev
-  'recording': ['ruamel.yaml'],
 }
 
 # Meta dependency groups.
@@ -22,6 +21,7 @@ setup(
         'enum34',
         'numpy',
         'gym',
+        'ruamel.yaml',
     ],
     extras_require=extras,
     classifiers=[
