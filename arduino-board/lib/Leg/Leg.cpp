@@ -1,7 +1,8 @@
 #include "leg.h"
 
-//Captures address and size of struct
-void Leg::birth(int s, int p_a_x, int p_a_y, int p_a_z, int p_k, int p_h_x, int p_h_y, int p_h_z, int o_a_x = 0, int o_a_y = 0, int o_a_z = 0, int o_k = 0, int o_h_x = 0, int o_h_y = 0, int o_h_z = 0)
+//Build the instance of Leg
+//Defines the analog inputs of the Arduino for the leg.
+void Leg::build(int s, int p_a_x, int p_a_y, int p_a_z, int p_k, int p_h_x, int p_h_y, int p_h_z, int o_a_x = 0, int o_a_y = 0, int o_a_z = 0, int o_k = 0, int o_h_x = 0, int o_h_y = 0, int o_h_z = 0)
 {
     side = s;
 
@@ -30,6 +31,7 @@ void Leg::birth(int s, int p_a_x, int p_a_y, int p_a_z, int p_k, int p_h_x, int 
     offset_hip_z = o_a_z;
 }
 
+//Get the leg joints' position (raw values)
 void Leg::getValues()
 {
     for (int i = 0; i < joint_number; i++)
@@ -38,6 +40,7 @@ void Leg::getValues()
     }
 }
 
+//Get the leg joints' position (angles)
 void Leg::getAngles()
 {
     getValues();
@@ -48,6 +51,7 @@ void Leg::getAngles()
     }
 }
 
+//Update the leg joints' offsets
 void Leg::updateOffsets(int o_a_x, int o_a_y, int o_a_z, int o_k, int o_h_x, int o_h_y, int o_h_z)
 {
     offset_ankle_x = o_a_x;
