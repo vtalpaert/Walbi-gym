@@ -3,10 +3,9 @@ from typing import TypeVar, List, Tuple, Sequence
 import numpy as np
 from gym import Env, spaces
 
-import walbi_gym.envs.definitions as _s  # settings
-from walbi_gym.envs.definitions import Message
+from walbi_gym.protocol import Message, PROTOCOL_VERSION
 from walbi_gym.communication import BaseInterface, make_interface
-
+from walbi_gym.configuration import config
 
 def constrain(x, in_min,  in_max, out_min, out_max, clip=False):
     if clip:
@@ -21,12 +20,30 @@ Action = _DecimalList
 
 class WalbiEnv(Env):
     name = 'Walbi'
-    version = _s.PROTOCOL_VERSION
-    motor_ranges = _s.MOTOR_RANGES
-    action_space = spaces.Box(low=-1, high=1, shape=_s.ACTION_SHAPE, dtype=np.float16)
-    raw_action_space = spaces.Box(low=np.array(_s.RAW_ACTION_LOW), high=np.array(_s.RAW_ACTION_HIGH), dtype=np.int16)
-    observation_space = spaces.Box(low=-1, high=1, shape=_s.OBSERVATION_SHAPE, dtype=np.float16)
-    raw_observation_space = spaces.Box(low=np.array(_s.RAW_OBSERVATION_LOW), high=np.array(_s.RAW_OBSERVATION_HIGH), dtype=np.int16)
+    protocol_version = PROTOCOL_VERSION
+    config = config
+    action_space = spaces.Box(
+        low=-1,
+        high=1,
+        shape=(10, 2),
+        dtype=np.float16
+    )
+    raw_action_space = spaces.Box(
+        low=np.array(list(zip(config['motors']['ranges']['positions']['low'], config['motors']['ranges']['span']['low']))),
+        high=np.array(list(zip(config['motors']['ranges']['positions']['high'], config['motors']['ranges']['span']['high']))),
+        dtype=np.int16
+        )
+    observation_space = spaces.Box(
+        low=-1,
+        high=1,
+        shape=(10,),
+        dtype=np.float16
+    )
+    raw_observation_space = spaces.Box(
+        low=np.array(config['motors']['ranges']['positions']['low']),
+        high=np.array(config['motors']['ranges']['positions']['high']),
+        dtype=np.int16
+    )
 
     def __init__(self, interface='serial', autoconnect=True, verify_version=True, *args, **kwargs):
         self.interface = make_interface(interface, *args, **kwargs)
@@ -91,8 +108,9 @@ class WalbiEnv(Env):
     def _state_interpretation(self, state) -> Tuple[float, bool, dict]:
         """Calculates reward and termination. Provides the info dict"""
         timestamp = state[0]
+        is_position_updated = [bool(state[update_flag_index]) for update_flag_index in range(2, 21, 2)]
         reward, termination = 0, False  # TODO
-        info = {'timestamp': timestamp}
+        info = {'timestamp': timestamp, 'is_position_updated': is_position_updated}
         return reward, termination, info
 
     def _receive_state(self):
@@ -100,7 +118,7 @@ class WalbiEnv(Env):
         return state
 
     def _state_to_observation(self, state) -> Observation:
-        raw_observation = state[1:]
+        raw_observation = [state[position_index] for position_index in range(1, 20, 2)]
         observation = self._convert_obs_int_to_float(raw_observation)
         return observation
 

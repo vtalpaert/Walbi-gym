@@ -28,41 +28,11 @@ A timestamp is provided in the info dictionnary.
 
 ### Arduino compilation
 
-1. With Makefile (Linux/Mac OS systems)
+- Install Arduino IDE
 
-    ***This method is currently not working. For an unknown reason, the ServoBus library does not seem to read the motor positions even after successful compilation.***
+- Copy the folders from [lib](arduino-board/lib) into your local Arduino library folder
 
-    Install [Arduino Makefile](https://github.com/sudar/Arduino-Makefile):
-
-    ```bash
-    sudo apt-get install arduino-mk
-    ```
-
-    Compile and upload the code to the Arduino (please check the board name in the Makefile):
-
-    ```bash
-    cd arduino-board/
-    make  # compile
-    make upload  # compile and upload
-    ```
-
-1. With the Arduino IDE (all platforms)
-
-    Copy the folders from [lib](arduino-board/lib) into your local Arduino library folder.
-
-    Change the includes from:
-
-    ```c
-    #include "../ServoBus/ServoBus.h"
-    ```
-
-    to:
-
-    ```c
-    #include "ServoBus.h"
-    ```
-
-    Open the file [slave.ino](arduino-board/slave/slave.ino) and hit verify/upload.
+- From the Arduino IDE, choose from `File > Examples > Walbi`
 
 ## Hardware
 
@@ -71,6 +41,7 @@ A timestamp is provided in the info dictionnary.
 Timing measurements :
 - looping on STEP (computer side) ~ 150 ms
 - looping on Walbi->get_state() (Arduino only) ~ 120 ms
+- test with Arduino Mega (Hardware Serial Port) ~ 215ms (get state only), 225 (step)
 
 ### Buiding Walbi
 
@@ -86,9 +57,10 @@ Build Walbi according to [original instructions](https://create.arduino.cc/proje
 
 ## Versions
 
-1. Version 0 is simple motor observation and action
-1. Version 1 adds time interval
-1. Version 2 removes the time interval, it is now directly the timestamp in the info dictionnary
+1. Version `0.1.0` with `protocol-v0` is simple motor observation and action
+1. Version `0.1.1` with `protocol-v1` adds time interval
+1. Version `0.1.2` with `protocol-v2` removes the time interval, it is now directly the timestamp in the info dictionnary
+1. Version `0.1.3` with `protocol-v3` is more straightforward with less OK messages (e.g. STEP does not send ACTION anymore). Also the responsability for a reward and termination is left to the `Env`
 
 ## Acknowledgements
 

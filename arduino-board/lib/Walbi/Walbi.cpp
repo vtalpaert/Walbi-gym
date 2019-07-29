@@ -1,6 +1,8 @@
 #include "Walbi.h"
 
-namespace Walbi
+#include <SoftwareSerial.h>
+
+namespace walbi_ns
 {
 
 Message read_message() { return (Message) Serial.read(); }
@@ -11,35 +13,40 @@ void write_message(enum Message myMessage)
     Serial.write(Message, sizeof(uint8_t));
 }
 
-State last_state;
-unsigned long timestamp_last_handled_message = 0;
+State lastState_;
+unsigned long timestampLastHandledMessage_ = 0;
+SoftwareSerial* servoBusStream_;
 
-void Walbi::receive_position_from_debug_board_(uint8_t id, uint8_t command, uint16_t param1, uint16_t param2)
+void Walbi::receivePositionFromDebugBoard_(uint8_t id, uint8_t command, uint16_t param1, uint16_t param2)
 {
     (void)command;
     (void)param2;
-    last_state.positions[id] = param1; // TODO find index of array according to id, now we suppose the index and id are the same
+    lastState_.positions[id] = param1;
+    lastState_.is_position_updated[id] = true;
+    // TODO find index of array according to id, now we suppose the index and id are the same
+    // TODO do something if receiving failed
 }
 
-void wait_for_serial() // blocking until Serial available
+void waitForSerial() // blocking until Serial available
 {
     while (Serial.available() == 0) { delay(1); }
 }
 
-State* Walbi::read_positions_from_debug_board_()
+State* Walbi::readPositionsFromDebugBoard_()
 {
+    memset(lastState_.is_position_updated, 0, sizeof(bool) * MOTOR_NB);
     for (uint8_t i = 0; i < MOTOR_NB; i++)
     {
-        this->bus_->requestPosition(this->motor_ids[i]);
+        this->servoBus_->requestPosition(this->motorIds[i]);
     }
-    return &last_state;
+    return &lastState_;
 }
 
-bool wait_acknowledge()
+bool waitAcknowledge()
 {
-    wait_for_serial();
-    Message message_received = read_message();
-    if(message_received != OK)
+    waitForSerial();
+    Message messageReceived = read_message();
+    if(messageReceived != OK)
     {
         write_message(ERROR);
         write_i8(EXPECTED_OK);
@@ -50,29 +57,18 @@ bool wait_acknowledge()
 
 bool Walbi::connect()
 {
-    while(!this->is_connected)
+    while(!this->isConnected)
     {
         write_message(CONNECT);
         wait_for_bytes(1, 1000);
-        this->handle_messages_from_serial();
+        this->handleMessagesFromSerial();
     }
-    return this->is_connected;
+    return this->isConnected;
 }
 
-bool Walbi::receive_action(Action* action, bool listen_for_message)
+bool Walbi::receiveAction(Action* action)
 {
-    if (listen_for_message)
-    {
-        // we wait for an ACTION message
-        wait_for_serial();
-        Message message_received = read_message();
-        if(message_received != ACTION)
-        {
-            write_message(ERROR);
-            write_i8(EXPECTED_ACTION);
-            return false;
-        }
-    }
+    // assume ACTION msg already received
     for (uint8_t i = 0; i < MOTOR_NB; i++)
     {
         action->commands[i][0] = read_i16(); // position
@@ -86,41 +82,42 @@ void Walbi::act(Action* action)
 {
     for (uint8_t i = 0; i < MOTOR_NB; i++)
     {
-        this->bus_->MoveTime(this->motor_ids[i], action->commands[i][0], action->commands[i][1]);
+        this->servoBus_->MoveTime(this->motorIds[i], action->commands[i][0], action->commands[i][1]);
     }
 }
 
-State* Walbi::get_state()
+State* Walbi::getState()
 {
-    last_state.timestamp = millis();
-    this->read_positions_from_debug_board_();
-    return &last_state;
+    lastState_.timestamp = millis();
+    this->readPositionsFromDebugBoard_();
+    return &lastState_;
 }
 
-bool Walbi::send_state(State* state)
+bool Walbi::sendState(State* state)
 {
     write_message(STATE);
     write_i32(state->timestamp);
     for (uint8_t i = 0; i < MOTOR_NB; i++)
     {
         write_i16(state->positions[i]);
+        write_i8(state->is_position_updated[i]);
     }
-    return wait_acknowledge();
+    return waitAcknowledge();
 }
 
-bool Walbi::handle_messages_from_serial()
+bool Walbi::handleMessagesFromSerial()
 {
     if(Serial.available() > 0) // non blocking, do not use wait_for_serial
     {
-        Message message_received = read_message(); // The first byte received is the instruction
-        switch(message_received)
+        Message messageReceived = read_message(); // The first byte received is the instruction
+        switch(messageReceived)
         {
             case CONNECT:
             {
                 // If the we have not said hello, check the connection
-                if(!this->is_connected)
+                if(!this->isConnected)
                 {
-                    this->is_connected = true;
+                    this->isConnected = true;
                     write_message(CONNECT);
                 }
                 else
@@ -130,21 +127,21 @@ bool Walbi::handle_messages_from_serial()
                 }
                 return true;
             }
-            case ALREADY_CONNECTED: { this->is_connected = true; break; }
+            case ALREADY_CONNECTED: { this->isConnected = true; return true; }
             case RESET:
             {
                 write_message(OK);
-                State* state_ptr = this->refresh_state_if_needed_();
-                return this->send_state(state_ptr);
+                State* statePtr = this->refreshStateIfNeeded_();
+                return this->sendState(statePtr);
             }
             case STEP:
             {
                 Action action;
-                if (this->receive_action(&action, false))
+                if (this->receiveAction(&action))
                 {
                     this->act(&action);
-                    State* state_ptr = this->refresh_state_if_needed_();
-                    return this->send_state(state_ptr);
+                    State* statePtr = this->refreshStateIfNeeded_();
+                    return this->sendState(statePtr);
                 }
                 else
                 {
@@ -154,15 +151,22 @@ bool Walbi::handle_messages_from_serial()
             case ACTION:
             {
                 // only happens if agent is controlling without reading state
-                // we answer OK and then are expecting ACTION again
                 Action action;
-                return this->receive_action(&action, false);
+                if (this->receiveAction(&action))
+                {
+                    this->act(&action);
+                    return true;
+                }
+                else
+                {
+                    return false; // receiving action has failed
+                }
             }
             case STATE:
             {
                 write_message(OK);
-                State* state_ptr = this->refresh_state_if_needed_();
-                return this->send_state(state_ptr);
+                State* statePtr = this->refreshStateIfNeeded_();
+                return this->sendState(statePtr);
             }
             case VERSION:
             {
@@ -170,7 +174,7 @@ bool Walbi::handle_messages_from_serial()
                 write_message(OK);
                 write_message(VERSION);
                 write_i8(PROTOCOL_VERSION);
-                return wait_acknowledge();
+                return waitAcknowledge();
             }
             case INFO:
             {
@@ -202,30 +206,44 @@ bool Walbi::handle_messages_from_serial()
     return false;
 }
 
-State* Walbi::refresh_state_if_needed_() {
-    if(millis() - last_state.timestamp >= this->interval_refresh_state_) {
-		return this->get_state();
+State* Walbi::refreshStateIfNeeded_() {
+    if (millis() - lastState_.timestamp >= this->intervalRefreshState_)
+    {
+		return this->getState();
 	}
-    return &last_state;
+    return &lastState_;
 }
 
-void Walbi::run(){
-	if(millis() - timestamp_last_handled_message >= this->interval_read_serial_) {
-		timestamp_last_handled_message = millis();
-		this->handle_messages_from_serial();
-	}
-	this->refresh_state_if_needed_();
-}
-
-Walbi::Walbi(uint8_t debug_board_rx, uint8_t debug_board_tx, long computer_serial_baud, unsigned long interval_read_serial, unsigned long interval_refresh_state, bool auto_connect):
-    interval_read_serial_(interval_read_serial), interval_refresh_state_(interval_refresh_state)
+void Walbi::run()
 {
-    Serial2.begin(DEBUG_BOARD_SERIAL_BAUD); // SoftwareSerial - connects Arduino to Debug Board serial pins (RX->TX, TX->RX, GND->GND)
-    this->bus_ = new ServoBus(Serial2, 0);
-    this->bus_->setEventHandler(REPLY_POSITION, this->receive_position_from_debug_board_);
-    Serial.begin(computer_serial_baud);
-    memcpy(this->motor_ids, MOTOR_IDS, sizeof(this->motor_ids)); // init ids with MOTOR_IDS
-    if (auto_connect) { this->connect(); }
+	if (millis() - timestampLastHandledMessage_ >= this->intervalReadSerial_)
+    {
+		timestampLastHandledMessage_ = millis();
+		this->handleMessagesFromSerial();
+	}
+	this->refreshStateIfNeeded_();
 }
 
-} // namespace
+Walbi::Walbi(uint8_t debugBoardRx, uint8_t debugBoardTx, long computerSerialBaud, unsigned long intervalReadSerial, unsigned long intervalRefreshState, bool autoConnect):
+    intervalReadSerial_(intervalReadSerial), intervalRefreshState_(intervalRefreshState)
+{
+	servoBusStream_ = new SoftwareSerial(debugBoardTx, debugBoardRx); // our RX is connected to the Debug Board TX
+    servoBusStream_->begin(DEBUG_BOARD_BAUD); // SoftwareSerial - connects Arduino to Debug Board serial pins (RX->TX, TX->RX, GND->GND)
+    this->servoBus_ = new ServoBus(servoBusStream_, 0);
+    this->servoBus_->setEventHandler(REPLY_POSITION, this->receivePositionFromDebugBoard_);
+    Serial.begin(computerSerialBaud);
+    memcpy(this->motorIds, MOTOR_IDS, sizeof(this->motorIds)); // init ids with MOTOR_IDS
+    if (autoConnect) { this->connect(); }
+}
+
+Walbi::Walbi(Stream* debugBoardStream, long computerSerialBaud, unsigned long intervalReadSerial, unsigned long intervalRefreshState, bool autoConnect):
+    intervalReadSerial_(intervalReadSerial), intervalRefreshState_(intervalRefreshState)
+{
+    this->servoBus_ = new ServoBus(debugBoardStream, 0);
+    this->servoBus_->setEventHandler(REPLY_POSITION, this->receivePositionFromDebugBoard_);
+    Serial.begin(computerSerialBaud);
+    memcpy(this->motorIds, MOTOR_IDS, sizeof(this->motorIds)); // init ids with MOTOR_IDS
+    if (autoConnect) { this->connect(); }
+}
+
+} // namespace walbi_ns
