@@ -2,6 +2,7 @@ from setuptools import setup
 
 extras = {
   'bluetooth': ['pybluez'],  # requires libbluetooth-dev
+  'pid': ['pid_controller'],
 }
 
 # Meta dependency groups.

@@ -59,7 +59,7 @@ class WalbiEnv(Env):
             return observation, reward, done, info
 
     def step(self, action: ActionType) -> Tuple[ObservationType, float, bool, dict]:
-        int16_action = self._convert_action_float_to_int(action)
+        int16_action = self._convert_action_norm_to_raw(action)
         self.interface.put_command(Message.STEP, param=int16_action, expect_ok=True)
         state = self._receive_state()
         observation = self._state_to_observation(state)
@@ -67,15 +67,19 @@ class WalbiEnv(Env):
         return observation, reward, done, info
 
     def _send_action(self, action: ActionType):
-        int16_action = self._convert_action_float_to_int(action)
+        int16_action = self._convert_action_norm_to_raw(action)
         self.interface.put_command(Message.ACTION, param=int16_action, expect_ok=True)
 
     @classmethod
-    def _convert_action_float_to_int(cls, action: ActionType) -> np.ndarray:
+    def _convert_action_norm_to_raw(cls, action: ActionType) -> np.ndarray:
         return constrain_spaces(action, cls.action_space, cls.raw_action_space, clip=True)
+    
+    @classmethod
+    def _convert_obs_norm_to_raw(cls, obs: ObservationType) -> np.ndarray:
+        return constrain_spaces(obs, cls.observation_space, cls.raw_observation_space, clip=False)
 
     @classmethod
-    def _convert_obs_int_to_float(cls, raw_obs: Sequence[int]) -> ObservationType:
+    def _convert_obs_raw_to_norm(cls, raw_obs: Sequence[int]) -> ObservationType:
         return constrain_spaces(raw_obs, cls.raw_observation_space, cls.observation_space, clip=False)
 
     def _state_interpretation(self, state) -> Tuple[float, bool, dict]:
@@ -86,18 +90,18 @@ class WalbiEnv(Env):
         info = {'timestamp': timestamp, 'is_position_updated': is_position_updated}
         return reward, termination, info
 
-    def _receive_state(self):
-        state = self.interface.expect_or_raise(Message.STATE)
-        return state
-
     def _state_to_observation(self, state) -> ObservationType:
         raw_observation = [state[position_index] for position_index in range(1, 20, 2)]
-        observation = self._convert_obs_int_to_float(raw_observation)
+        observation = self._convert_obs_raw_to_norm(raw_observation)
         return observation
 
     def _ask_state(self):
         self.interface.put_command(Message.STATE, expect_ok=True)
         return self._receive_state()
+
+    def _receive_state(self):
+        state = self.interface.expect_or_raise(Message.STATE)
+        return state
 
     def render(self, mode='human'):
         """TODO"""

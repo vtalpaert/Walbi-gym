@@ -1,9 +1,13 @@
 import numpy as np
 
 
+def _clip(x, low, high):
+    return max(low, min(high, x))
+
+
 def constrain(x, in_min,  in_max, out_min, out_max, clip=False):
     if clip:
-        x = max(in_min, min(in_max, x))
+        x = _clip(x, in_min, in_max)
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
 

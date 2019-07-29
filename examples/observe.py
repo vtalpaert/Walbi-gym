@@ -7,6 +7,7 @@ import walbi_gym
 if __name__ == '__main__':
     with gym.make('Walbi-v0') as walbi:
         while True:
-            obs, _, _, _ = walbi._ask_state()
+            state = walbi._ask_state()
+            obs = walbi._state_to_observation(state)
             print('[', ','.join(map(str, obs)), ']')
             input()
