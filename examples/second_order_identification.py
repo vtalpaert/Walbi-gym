@@ -4,6 +4,9 @@ import walbi_gym
 import time
 
 import matplotlib.pyplot as plt
+from ruamel.yaml import YAML
+
+yaml = YAML()   # typ='safe', if not specfied, is 'rt' (round-trip)
 
 
 def get_pos(walbi, dim):
@@ -14,6 +17,7 @@ def get_pos(walbi, dim):
 if __name__ == '__main__':
     plot_dim = 0
     time_limit = 3000  # [ms]
+    filename = 'identification.yaml'
 
     times, positions = [], []
 
@@ -38,5 +42,8 @@ if __name__ == '__main__':
             times.append(ts)
             positions.append(position)
     
-    plt.plot(time, [target_raw[plot_dim]] * len(time), 'bo')
-    plt.plot(time, position)
+    plt.plot(times, [target_raw[plot_dim]] * len(time), 'bo')
+    plt.plot(times, positions)
+
+     with open(filename, 'w') as f:
+        yaml.dump({'times': time, 'positions': positions}, f)
