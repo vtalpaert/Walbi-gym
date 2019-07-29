@@ -33,10 +33,10 @@ def get_serial_ports():
 
 
 class SerialInterface(BaseInterface):
-    def __init__(self, serial_port=None, baudrate=None):
+    def __init__(self, serial_port='auto', baudrate=None):
         if baudrate is None:
             baudrate = config['communication']['baud_rate']
-        if serial_port is None:
+        if serial_port == 'auto':
             ports = get_serial_ports()
             if len(ports) == 0:
                 raise WalbiError('No serial port found')

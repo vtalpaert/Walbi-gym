@@ -6,16 +6,12 @@ from gym import Env, spaces
 from walbi_gym.protocol import Message, PROTOCOL_VERSION
 from walbi_gym.communication import BaseInterface, make_interface
 from walbi_gym.configuration import config
-
-def constrain(x, in_min,  in_max, out_min, out_max, clip=False):
-    if clip:
-        x = max(in_min, min(in_max, x))
-    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+from walbi_gym.envs.utils import constrain_spaces
 
 
 _DecimalList = TypeVar('DecimalList', np.ndarray, Sequence[float])
-Observation = np.ndarray
-Action = _DecimalList
+ObservationType = np.ndarray
+ActionType = _DecimalList
 
 
 class WalbiEnv(Env):
@@ -32,7 +28,7 @@ class WalbiEnv(Env):
         low=np.array(list(zip(config['motors']['ranges']['positions']['low'], config['motors']['ranges']['span']['low']))),
         high=np.array(list(zip(config['motors']['ranges']['positions']['high'], config['motors']['ranges']['span']['high']))),
         dtype=np.int16
-        )
+    )
     observation_space = spaces.Box(
         low=-1,
         high=1,
@@ -49,15 +45,20 @@ class WalbiEnv(Env):
         self.interface = make_interface(interface, *args, **kwargs)
         if autoconnect and not self.interface.is_connected:
             self.interface.connect()
-        if verify_version and self.interface.verify_version():
+        if verify_version and self.interface.is_connected and self.interface.verify_version():
             print('Version OK')
 
-    def reset(self) -> Observation:
+    def reset(self, return_interpretation: bool=False) -> ObservationType:
         self.interface.put_command(Message.RESET, expect_ok=True)
         state = self._receive_state()
-        return self._state_to_observation(state)
+        observation = self._state_to_observation(state)
+        if not return_interpretation:
+            return self._state_to_observation(state)
+        else:
+            reward, done, info = self._state_interpretation(state)
+            return observation, reward, done, info
 
-    def step(self, action: Action) -> Tuple[Observation, float, bool, dict]:
+    def step(self, action: ActionType) -> Tuple[ObservationType, float, bool, dict]:
         int16_action = self._convert_action_float_to_int(action)
         self.interface.put_command(Message.STEP, param=int16_action, expect_ok=True)
         state = self._receive_state()
@@ -65,45 +66,17 @@ class WalbiEnv(Env):
         reward, done, info = self._state_interpretation(state)
         return observation, reward, done, info
 
-    def _send_action(self, action: Action):
+    def _send_action(self, action: ActionType):
         int16_action = self._convert_action_float_to_int(action)
         self.interface.put_command(Message.ACTION, param=int16_action, expect_ok=True)
 
     @classmethod
-    def _convert_action_float_to_int(cls, action: Action) -> List[Tuple[int, int]]:
-        int16_action = [
-            (
-                int(constrain(
-                    position,
-                    cls.action_space.low[index][0],
-                    cls.action_space.high[index][0],
-                    cls.raw_action_space.low[index][0],
-                    cls.raw_action_space.high[index][0],
-                    clip=True
-                )),
-                int(constrain(
-                    span,
-                    cls.action_space.low[index][1],
-                    cls.action_space.high[index][1],
-                    cls.raw_action_space.low[index][1],
-                    cls.raw_action_space.high[index][1],
-                    clip=True
-                ))
-            ) for index, (position, span) in enumerate(action)]
-        return int16_action
+    def _convert_action_float_to_int(cls, action: ActionType) -> np.ndarray:
+        return constrain_spaces(action, cls.action_space, cls.raw_action_space, clip=True)
 
     @classmethod
-    def _convert_obs_int_to_float(cls, raw_obs: Sequence[int]) -> Observation:
-        obs = np.array([
-            constrain(
-                raw_value,
-                cls.raw_observation_space.low[index],
-                cls.raw_observation_space.high[index],
-                cls.observation_space.low[index],
-                cls.observation_space.high[index]
-            ) for index, raw_value in enumerate(raw_obs)
-        ], dtype=np.float16)
-        return obs
+    def _convert_obs_int_to_float(cls, raw_obs: Sequence[int]) -> ObservationType:
+        return constrain_spaces(raw_obs, cls.raw_observation_space, cls.observation_space, clip=False)
 
     def _state_interpretation(self, state) -> Tuple[float, bool, dict]:
         """Calculates reward and termination. Provides the info dict"""
@@ -117,7 +90,7 @@ class WalbiEnv(Env):
         state = self.interface.expect_or_raise(Message.STATE)
         return state
 
-    def _state_to_observation(self, state) -> Observation:
+    def _state_to_observation(self, state) -> ObservationType:
         raw_observation = [state[position_index] for position_index in range(1, 20, 2)]
         observation = self._convert_obs_int_to_float(raw_observation)
         return observation
@@ -131,4 +104,9 @@ class WalbiEnv(Env):
 
     def close(self):
         print('Exiting...')
-        self.interface.close()
+        if self.interface.is_connected:
+            self.interface.close()
+
+
+if __name__ == '__main__':
+    pass

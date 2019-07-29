@@ -9,6 +9,7 @@ import socket
 from walbi_gym.communication.threads import CommandThread, ListenerThread, CustomQueue, queue
 from walbi_gym.envs import errors
 from walbi_gym.protocol import Message
+from walbi_gym import protocol
 from walbi_gym.communication import robust_serial
 from walbi_gym.configuration import config
 
@@ -24,6 +25,7 @@ MAP_TYPE_WRITE = {
     'int32': robust_serial.write_i32,
 }
 
+_rate = config['communication']['thread_rate']
 
 def read_types(type_list, file):
     try:
@@ -99,9 +101,9 @@ class BaseInterface(ABC):
         self._received_queue.clear()
 
     def verify_version(self):
-        self.put_command(Message.VERSION, param=[_s.PROTOCOL_VERSION], expect_ok=True)
+        self.put_command(Message.VERSION, param=[protocol.PROTOCOL_VERSION], expect_ok=True)
         arduino_version = self.expect_or_raise(Message.VERSION)[0]
-        if arduino_version != _s.PROTOCOL_VERSION:
+        if arduino_version != protocol.PROTOCOL_VERSION:
             raise errors.WalbiProtocolVersionError()
         return True
     
@@ -109,10 +111,10 @@ class BaseInterface(ABC):
         try:
             bytes_array = bytearray(self.file.read(1))
         except (serial.SerialException, socket.error):
-            time.sleep(_s.RATE)
+            time.sleep(_rate)
             return None
         if not bytes_array:
-            time.sleep(_s.RATE)
+            time.sleep(_rate)
             return None
         byte = bytes_array[0]
         return byte
@@ -121,11 +123,11 @@ class BaseInterface(ABC):
         # Only called by threads respecting our _serial_lock
         if self.debug:
             print('Listener thread:', message, 'just in')
-        if message in _s.MESSAGE_TYPES:
+        if message in protocol.MESSAGE_TYPES:
             self._received_queue.put(
                 (
                     message,
-                    read_types(_s.MESSAGE_TYPES[message], self.file)
+                    read_types(protocol.MESSAGE_TYPES[message], self.file)
                 )
             )
             self.put_command(Message.OK)
@@ -139,7 +141,7 @@ class BaseInterface(ABC):
         robust_serial.write_message(self.file, message)
         if param is not None:
             try:
-                write_types(_s.MESSAGE_TYPES[message], param, self.file)
+                write_types(protocol.MESSAGE_TYPES[message], param, self.file)
             except KeyError as e:
                 raise NotImplementedError(str(message)) from e
 
