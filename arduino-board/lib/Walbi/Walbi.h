@@ -72,7 +72,6 @@ public:
     bool isConnected = false;
     bool connect(); // run this in setup
 
-    Walbi(uint8_t debugBoardRx, uint8_t debugBoardTx, long computerSerialBaud, unsigned long intervalReadSerial = 0, unsigned long intervalRefreshState = 0, bool autoConnect = true);
     Walbi(Stream* debugBoardStream, long computerSerialBaud, unsigned long intervalReadSerial = 0, unsigned long intervalRefreshState = 0, bool autoConnect = true);
 
     // interact with hardware

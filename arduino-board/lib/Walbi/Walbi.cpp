@@ -1,7 +1,5 @@
 #include "Walbi.h"
 
-#include <SoftwareSerial.h>
-
 namespace walbi_ns
 {
 
@@ -15,7 +13,6 @@ void write_message(enum Message myMessage)
 
 State lastState_;
 unsigned long timestampLastHandledMessage_ = 0;
-SoftwareSerial* servoBusStream_;
 
 void Walbi::receivePositionFromDebugBoard_(uint8_t id, uint8_t command, uint16_t param1, uint16_t param2)
 {
@@ -222,18 +219,6 @@ void Walbi::run()
 		this->handleMessagesFromSerial();
 	}
 	this->refreshStateIfNeeded_();
-}
-
-Walbi::Walbi(uint8_t debugBoardRx, uint8_t debugBoardTx, long computerSerialBaud, unsigned long intervalReadSerial, unsigned long intervalRefreshState, bool autoConnect):
-    intervalReadSerial_(intervalReadSerial), intervalRefreshState_(intervalRefreshState)
-{
-	servoBusStream_ = new SoftwareSerial(debugBoardTx, debugBoardRx); // our RX is connected to the Debug Board TX
-    servoBusStream_->begin(DEBUG_BOARD_BAUD); // SoftwareSerial - connects Arduino to Debug Board serial pins (RX->TX, TX->RX, GND->GND)
-    this->servoBus_ = new ServoBus(servoBusStream_, 0);
-    this->servoBus_->setEventHandler(REPLY_POSITION, this->receivePositionFromDebugBoard_);
-    Serial.begin(computerSerialBaud);
-    memcpy(this->motorIds, MOTOR_IDS, sizeof(this->motorIds)); // init ids with MOTOR_IDS
-    if (autoConnect) { this->connect(); }
 }
 
 Walbi::Walbi(Stream* debugBoardStream, long computerSerialBaud, unsigned long intervalReadSerial, unsigned long intervalRefreshState, bool autoConnect):
