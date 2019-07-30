@@ -7,7 +7,7 @@ from .simulated import LX16A
 
 class WalbiMockEnv(WalbiEnv):
     _time = 0
-    refresh_period = 0.2  # [s] interval between to steps
+    simulation_step = 0.001  # [s]
     reward_range = (-1, 1)
 
     def __init__(self, *args, **kwargs):
@@ -32,10 +32,10 @@ class WalbiMockEnv(WalbiEnv):
             return self.observation, reward, terminal, info
 
     def step(self, action):
-        self._time += self.refresh_period
+        self._time += self.simulation_step
         raw_action = self._convert_action_norm_to_raw(action)
         for i in range(len(self._motors)):
-            self.raw_observation[i] = self._motors[i].step(dt=self.refresh_period, target_encoder=raw_action[i, 0])
+            self.raw_observation[i] = self._motors[i].step(dt=self.simulation_step, target_encoder=raw_action[i, 0])
         reward = np.random.uniform(*self.reward_range)
         terminal = bool(np.random.binomial(1, 0.1))  # p=0.1
         info = {'debug': 'mock', 'timestamp': self._time}

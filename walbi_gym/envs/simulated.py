@@ -9,11 +9,15 @@ class LX16A(object):
     min_position_encoder = 0
     max_position_encoder = 1023
 
+    first_order_speed = 0.1
+
     def __init__(self, initial_position=512):
         self.position_encoder = initial_position
         self.speed = 0
+        self.first_order_speed = _clip(self.first_order_speed, 0, 1)
 
     def step(self, dt, target_encoder):
+        target_encoder = int(target_encoder)
         if target_encoder > self.position_encoder:
             direction = +1
         elif target_encoder < self.position_encoder:
@@ -23,6 +27,7 @@ class LX16A(object):
         if self.time_to_reach_max_speed == 0:
             self.speed = direction * self.max_speed
         else:
-            self.speed = _clip(self.speed + direction * dt / self.time_to_reach_max_speed, - self.max_speed, self.max_speed)
+            new_speed = _clip(self.speed + direction * dt / self.time_to_reach_max_speed * self.max_speed, - self.max_speed, self.max_speed)
+            self.speed = self.first_order_speed * self.speed + (1 - self.first_order_speed) * new_speed
         self.position_encoder = _clip(self.position_encoder +  dt * self.speed, self.min_position_encoder, self.max_position_encoder)
         return self.position_encoder

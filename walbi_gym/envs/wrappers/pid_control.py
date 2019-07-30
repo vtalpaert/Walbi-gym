@@ -75,7 +75,7 @@ if __name__ == '__main__':
     from walbi_gym.envs import WalbiMockEnv
     import matplotlib.pyplot as plt
 
-    K = [(0.8, 0, 0.0001)] * 10
+    K = [(0.01, 0.001, 0)] * 10
     steps = 10000
 
     plot_dim = 0
@@ -83,6 +83,7 @@ if __name__ == '__main__':
     with PidWrapper(gym.make('WalbiMock-v0'), K) as env:
         env.reset()
         for step in range(steps):
+            # one step is one millis
             action = env.action_space.sample() if step % 200 == 0 else action
             observation, _, done, info = env.step(action, clip=False)
             raw_observation = WalbiMockEnv._convert_obs_norm_to_raw(observation)
