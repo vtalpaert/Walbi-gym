@@ -26,7 +26,7 @@ void Walbi::receivePositionFromDebugBoard_(uint8_t id, uint8_t command, uint16_t
 
 void waitForSerial() // blocking until Serial available
 {
-    while (Serial.available() == 0) { delay(1); }
+    while (!Serial.available());
 }
 
 State* Walbi::readPositionsFromDebugBoard_()
@@ -200,7 +200,7 @@ bool Walbi::handleMessagesFromSerial()
             }
         }
     }
-    return false;
+    return true; // empty serial buffer is a successful message handling
 }
 
 State* Walbi::refreshStateIfNeeded_() {
