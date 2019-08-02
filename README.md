@@ -11,6 +11,7 @@ Installing the package will automatically put the Arduino libraries in the folde
 To set an environment variable, use:
 
 - In Linux : `export ARDUINO_LIBRARIES_PATH=$HOME/Arduino/libraries`
+- In Windows, follow [this guide](https://www.computerhope.com/issues/ch000549.htm)
 
 Note that to installing files outside the package folder [is not permited by wheels](https://github.com/pypa/wheel/issues/92).
 
