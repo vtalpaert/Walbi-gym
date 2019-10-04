@@ -3,10 +3,11 @@ import time
 import os.path
 from os import makedirs
 
-from ruamel.yaml import YAML
 import numpy as np
 from gym import Wrapper
+from ruamel.yaml import YAML
 
+from walbi_gym.envs.errors import dependency_required
 
 yaml = YAML()   # typ='safe', if not specfied, is 'rt' (round-trip)
 
@@ -76,8 +77,8 @@ class RecordWrapper(Wrapper):
     def flush(self):
         try:
             extras = {
-                'version': self.env.version,
-                'motor_ranges': self.env.motor_ranges,
+                'protocol_version': self.env.protocol_version,
+                'config': dict(self.env.config),  # TODO try keeping the OrderedDict
             }
         except AttributeError:
             extras = {}
@@ -121,6 +122,8 @@ def dump_transitions(transitions: typing.Sequence[T], filename, to_dict=True, ex
 
 
 def load_transitions(filename) -> typing.Sequence[T]:
+    if not __has_yaml:
+        raise WalbiMissingDependencyError(__dependency_name__)
     with open(filename) as f:
         data = yaml.load(f)
     transitions = []

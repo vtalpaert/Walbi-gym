@@ -1,0 +1,6 @@
+[submodule "arduino-board/lib/ServoBus"]
+	path = arduino-board/lib/ServoBus
+	url = https://github.com/slandis/ServoBus.git
+[submodule "arduino-board/lib/ArduinoSTL"]
+	path = arduino-board/lib/ArduinoSTL
+	url = https://github.com/mike-matera/ArduinoSTL.git

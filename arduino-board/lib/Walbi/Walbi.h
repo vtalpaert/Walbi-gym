@@ -11,7 +11,7 @@
 namespace walbi_ns
 {
 
-#define PROTOCOL_VERSION 3
+#define PROTOCOL_VERSION 4
 
 const long DEBUG_BOARD_BAUD = 115200;  // Baudrate to DebugBoard
 const uint8_t MOTOR_NB = 10;
@@ -19,17 +19,18 @@ const uint8_t MOTOR_IDS[MOTOR_NB] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
 // Define the messages that can be sent and received
 enum Message {
-    OK = 1,  // acknowledge reception
-    CONNECT = 2,
-    ALREADY_CONNECTED = 3,
-    RESET = 4,
-    STEP = 5,
-    ACTION = 6,
-    STATE = 7,
-    CLOSE = 8,
-    INFO = 9,
-    ERROR = 10,
-    VERSION = 11,
+    OK = 1, // acknowledges reception
+    NOK = 2, // asks for resend
+    CONNECT = 3,
+    ALREADY_CONNECTED = 4,
+    RESET = 5,
+    STEP = 6,
+    ACTION = 7,
+    STATE = 8,
+    CLOSE = 9,
+    INFO = 10,
+    ERROR = 11,
+    VERSION = 12,
 };
 typedef enum Message Message;
 Message read_message();
@@ -38,15 +39,17 @@ void write_message(enum Message myMessage);
 enum ErrorCode {
     RECEIVED_UNKNOWN_MESSAGE = 0,
     EXPECTED_OK = 1,
-    EXPECTED_ACTION = 2,
-    DID_NOT_EXPECT_OK = 3,
-    NOT_IMPLEMENTED_YET = 4,
+    DID_NOT_EXPECT_OK = 2,
+    DID_NOT_EXPECT_NOK = 3,
+    DID_NOT_EXPECT_MESSAGE = 4,
+    NOT_IMPLEMENTED_YET = 5,
 };
 
 struct State
 {
     unsigned long timestamp;
     uint16_t positions[MOTOR_NB];
+    bool is_position_updated[MOTOR_NB];
 };
 
 struct Action
@@ -69,7 +72,6 @@ public:
     bool isConnected = false;
     bool connect(); // run this in setup
 
-    Walbi(uint8_t debugBoardRx, uint8_t debugBoardTx, long computerSerialBaud, unsigned long intervalReadSerial = 0, unsigned long intervalRefreshState = 0, bool autoConnect = true);
     Walbi(Stream* debugBoardStream, long computerSerialBaud, unsigned long intervalReadSerial = 0, unsigned long intervalRefreshState = 0, bool autoConnect = true);
 
     // interact with hardware

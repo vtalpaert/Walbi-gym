@@ -2,19 +2,67 @@
 
 **Walbi Gym** is a project to interact with [Walbi](https://releasetheinnergeek.com/) as an [OpenAI gym](https://gym.openai.com/) environment.
 
-## How to use
+## Installation
 
-### Install the Python3 module
+### Installing with Arduino libraries
+
+Installing the package will automatically put the Arduino libraries in the folder specifed by your environment variable `ARDUINO_LIBRARIES_PATH`.
+
+To set an environment variable, use:
+
+- In Linux : `export ARDUINO_LIBRARIES_PATH=$HOME/Arduino/libraries`
+- In Windows, follow [this guide](https://www.computerhope.com/issues/ch000549.htm)
+
+Note that to installing files outside the package folder [is not permited by wheels](https://github.com/pypa/wheel/issues/92).
+
+The following command allow for libraries copy
 
 ```bash
-python3 setup.py
+pip3 install --no-binary walbi-gym .  # avoids building a wheel
 ```
 
-### Gym environment
+### Developpers
+
+Clone repository with:
+
+```bash
+git clone --recursive https://github.com/vtalpaert/Walbi-gym
+```
+
+For developpers, install in editable mode with:
+
+```bash
+pip3 install -r requirements.txt
+pip3 install -e .[all]  # does the same as above
+```
+
+You will need to copy the folders from [lib](arduino-board/lib) into your local Arduino library folder.
+
+#### Copy libraries with `setup.py`
+
+For your convenience, use the following to copy the Arduino libraries
+
+```bash
+python3 setup.py copy_libraries -p $HOME/Arduino/libraries  # you can ommit the option if you have set ARDUINO_LIBRARIES_PATH
+```
+
+You may always copy libraries by hand of course.
+
+### Arduino compilation
+
+You must upload Walbi's Arduino code. To do so:
+
+- Install Arduino IDE
+
+- (Optional) Copy the folders from [lib](arduino-board/lib) into your local Arduino library folder
+
+- From the Arduino IDE, choose from `File > Examples > Walbi`
+
+## Gym environment
 
 You may create a Walbi Gym environment as usual.
 
-```python
+```python3
 import gym
 import walbi_gym  # will register env
 env = gym.make('Walbi-v0')
@@ -26,19 +74,12 @@ The observation space is a Box shaped `(10,)` for ten current motor positions.
 
 A timestamp is provided in the info dictionnary.
 
-### Arduino compilation
-
-- Install Arduino IDE
-
-- Copy the folders from [lib](arduino-board/lib) into your local Arduino library folder
-
-- From the Arduino IDE, choose from `File > Examples > Walbi`
-
 ## Hardware
 
 ### Performances
 
 Timing measurements :
+
 - looping on STEP (computer side) ~ 150 ms
 - looping on Walbi->get_state() (Arduino only) ~ 120 ms
 - test with Arduino Mega (Hardware Serial Port) ~ 215ms (get state only), 225 (step)
@@ -51,7 +92,9 @@ Build Walbi according to [original instructions](https://create.arduino.cc/proje
 
 1. Serial
     1. Connect your Arduino Serial to your computer
-    1. Connect Arduino to the Debug Board by the two `DEBUG_BOARD_RX`, `DEBUG_BOARD_TX` pins
+    1. Connect Arduino to the Debug Board
+        1. Use two `DEBUG_BOARD_RX`, `DEBUG_BOARD_TX` pins for SoftwareSerial
+        1. Connect to the DebugBoard to Serial1 for HardwareSerial
 1. Bluetooth (TODO)
 1. Wifi (TODO)
 
