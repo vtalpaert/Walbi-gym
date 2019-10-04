@@ -7,6 +7,7 @@ import walbi_gym
 if __name__ == '__main__':
     with gym.make('Walbi-v0') as walbi:
         while True:
-            obs, _, _, _ = walbi._ask_state()
-            print('[', ','.join(map(str, obs)), ']')
+            state = walbi._ask_state()
+            print(state)
             input()
+            walbi.step([[0, 0]]*10)
