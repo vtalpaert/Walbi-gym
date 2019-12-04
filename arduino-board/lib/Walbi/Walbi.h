@@ -16,6 +16,8 @@ namespace walbi_ns
 const long DEBUG_BOARD_BAUD = 115200;  // Baudrate to DebugBoard
 const uint8_t MOTOR_NB = 10;
 const uint8_t MOTOR_IDS[MOTOR_NB] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+//bool LOAD_MOTORS[MOTOR_NB] = {true, true, true, true, true, true, true, true, true, true};
+//bool UNLOAD_MOTORS[MOTOR_NB] = {false, false, false, false, false, false, false, false, false, false};
 
 // Define the messages that can be sent and received
 enum Message {
@@ -54,6 +56,7 @@ struct State
 
 struct Action
 {
+    bool activate[MOTOR_NB] = {true, true, true, true, true, true, true, true, true, true};
     uint16_t commands[MOTOR_NB][2];
 };
 

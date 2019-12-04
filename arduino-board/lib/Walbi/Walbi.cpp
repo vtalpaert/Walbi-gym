@@ -79,7 +79,11 @@ void Walbi::act(Action* action)
 {
     for (uint8_t i = 0; i < MOTOR_NB; i++)
     {
-        this->servoBus_->MoveTime(this->motorIds[i], action->commands[i][0], action->commands[i][1]);
+        if (action->activate[i]){
+            this->servoBus_->MoveTime(this->motorIds[i], action->commands[i][0], action->commands[i][1]);
+        } else {
+            this->servoBus_->SetUnload(this->motorIds[i]);
+        }
     }
 }
 
@@ -224,7 +228,7 @@ void Walbi::run()
 Walbi::Walbi(Stream* debugBoardStream, long computerSerialBaud, unsigned long intervalReadSerial, unsigned long intervalRefreshState, bool autoConnect):
     intervalReadSerial_(intervalReadSerial), intervalRefreshState_(intervalRefreshState)
 {
-    this->servoBus_ = new ServoBus(debugBoardStream, 0);
+    this->servoBus_ = new ServoBus(debugBoardStream, 13);
     this->servoBus_->setEventHandler(REPLY_POSITION, this->receivePositionFromDebugBoard_);
     Serial.begin(computerSerialBaud);
     memcpy(this->motorIds, MOTOR_IDS, sizeof(this->motorIds)); // init ids with MOTOR_IDS
