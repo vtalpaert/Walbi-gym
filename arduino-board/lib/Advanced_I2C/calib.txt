@@ -1,0 +1,7 @@
+Magnetometre
+BiasX: -4.970144
+ScaleX: 1.126202
+BiasY: 30.307353
+ScaleY: 0.960394
+BiasZ: -32.890918
+ScaleZ: 0.933863
