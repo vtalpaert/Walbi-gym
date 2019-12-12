@@ -116,11 +116,21 @@ const int weight_sensor_left_clock = 35;
 const int weight_sensor_right_data = 36;
 const int weight_sensor_right_clock = 37;
 
+const float scale_factor_left = -404.4138;
+const float scale_factor_right = -408.3440;
+const long scale_offset_left = 128666;
+const long scale_offset_right = 37085;
+
 void setup() {
   left_foot_sensor.begin(weight_sensor_left_data, weight_sensor_left_clock);
   delay(1000);
   right_foot_sensor.begin(weight_sensor_right_data, weight_sensor_right_clock);
   delay(1000);
+
+  left_foot_sensor.set_offset(scale_offset_left);
+  right_foot_sensor.set_offset(scale_offset_right);
+  left_foot_sensor.set_scale(scale_factor_left);
+  right_foot_sensor.set_scale(scale_factor_right);
   
   pinMode(but_g_pin, INPUT_PULLUP);
   pinMode(but_d_pin, INPUT_PULLUP);
@@ -136,21 +146,25 @@ void setup() {
 
 
 void loop() {
+  long reading1, reading2;
   if (left_foot_sensor.is_ready()) {
-    long reading = left_foot_sensor.read();
+    reading1 = left_foot_sensor.get_units();
     Serial.print("Left HX711 reading: ");
-    Serial.println(reading);
+    Serial.println(reading1);
   } else {
     Serial.println("HX711 not found.");
   }
 
   if (right_foot_sensor.is_ready()) {
-    long reading = right_foot_sensor.read();
+    reading2 = right_foot_sensor.get_units();
     Serial.print("Right HX711 reading: ");
-    Serial.println(reading);
+    Serial.println(reading2);
   } else {
     Serial.println("HX711 not found.");
   }
+
+  Serial.print("Somme: ");
+  Serial.println(reading1 + reading2);
   
   Serial.println();
   delay(1000);
