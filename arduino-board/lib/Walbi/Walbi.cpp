@@ -87,6 +87,8 @@ State* Walbi::getState()
 {
     lastState_.timestamp = millis();
     this->readPositionsFromDebugBoard_();
+    lastState_.weight_left = this->weight_sensor_left_.read();
+    lastState_.weight_right = this->weight_sensor_right_.read();
     return &lastState_;
 }
 
@@ -99,6 +101,8 @@ bool Walbi::sendState(State* state)
         write_i16(state->positions[i]);
         write_i8(state->is_position_updated[i]);
     }
+    write_i32(state->weight_left);
+    write_i32(state->weight_right);
     return waitAcknowledge();
 }
 
@@ -221,13 +225,22 @@ void Walbi::run()
 	this->refreshStateIfNeeded_();
 }
 
-Walbi::Walbi(Stream* debugBoardStream, long computerSerialBaud, unsigned long intervalReadSerial, unsigned long intervalRefreshState, bool autoConnect):
+Walbi::Walbi(Stream* debugBoardStream, unsigned long intervalReadSerial, unsigned long intervalRefreshState):
     intervalReadSerial_(intervalReadSerial), intervalRefreshState_(intervalRefreshState)
 {
     this->servoBus_ = new ServoBus(debugBoardStream, 0);
     this->servoBus_->setEventHandler(REPLY_POSITION, this->receivePositionFromDebugBoard_);
-    Serial.begin(computerSerialBaud);
     memcpy(this->motorIds, MOTOR_IDS, sizeof(this->motorIds)); // init ids with MOTOR_IDS
+}
+
+Walbi::begin(long computerSerialBaud, unsigned char dout_left, unsigned char dout_right, unsigned char pd_sck_left, unsigned char pd_sck_right, bool autoConnect, unsigned long delay_ready)
+{
+    Serial.begin(computerSerialBaud);
+
+    this->weight_sensor_left_.begin(dout_left, pd_sck_left);
+    this->weight_sensor_right_.begin(dout_right, pd_sck_right);
+    delay(delay_ready);
+
     if (autoConnect) { this->connect(); }
 }
 
