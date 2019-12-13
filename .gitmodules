@@ -1,6 +1,9 @@
 [submodule "arduino-board/lib/ServoBus"]
 	path = arduino-board/lib/ServoBus
 	url = https://github.com/slandis/ServoBus.git
-[submodule "arduino-board/lib/ArduinoSTL"]
-	path = arduino-board/lib/ArduinoSTL
-	url = https://github.com/mike-matera/ArduinoSTL.git
+[submodule "arduino-board/lib/HX711"]
+	path = arduino-board/lib/HX711
+	url = https://github.com/bogde/HX711.git
+[submodule "arduino-board/lib/MPU9250"]
+	path = arduino-board/lib/MPU9250
+	url = https://github.com/bolderflight/MPU9250.git
