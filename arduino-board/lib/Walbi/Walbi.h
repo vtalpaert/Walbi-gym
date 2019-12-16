@@ -48,7 +48,8 @@ enum ErrorCode {
 
 struct State
 {
-    unsigned long timestamp;
+    bool correct_motor_reading;
+	unsigned long timestamp;
     uint16_t positions[MOTOR_NB];
     bool is_position_updated[MOTOR_NB];
     long weight_left;
@@ -89,6 +90,10 @@ public:
     bool handleMessagesFromSerial();
     bool receiveAction(Action* action);
     bool sendState(State* state);
+	
+	//Weight modules tuning
+	void setOffset(long left_o, long right_o);
+	void setScale(long left_s, long right_s);
 
     // run in loop
     void run();

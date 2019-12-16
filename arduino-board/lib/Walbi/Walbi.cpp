@@ -89,6 +89,15 @@ State* Walbi::getState()
     this->readPositionsFromDebugBoard_();
     lastState_.weight_left = this->weight_sensor_left_.read();
     lastState_.weight_right = this->weight_sensor_right_.read();
+	lastState_.correct_motor_reading = true;
+	
+	//Check for incoherences in motor readings.
+	for (int ii = 0; ii < MOTOR_NB; ii++) {
+      if (lastState_.positions[ii] <= 10 || lastState_.positions[ii] > 1030) {
+        lastState_.correct_motor_reading = false;
+      }
+    }
+	
     return &lastState_;
 }
 
@@ -238,8 +247,9 @@ Walbi::begin(long computerSerialBaud, unsigned char dout_left, unsigned char dou
     Serial.begin(computerSerialBaud);
 
     this->weight_sensor_left_.begin(dout_left, pd_sck_left);
-    this->weight_sensor_right_.begin(dout_right, pd_sck_right);
+	this->weight_sensor_right_.begin(dout_right, pd_sck_right);
     delay(delay_ready);
+    
 
     if (autoConnect) { this->connect(); }
 }
