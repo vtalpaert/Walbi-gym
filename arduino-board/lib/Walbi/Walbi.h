@@ -91,10 +91,6 @@ public:
     bool receiveAction(Action* action);
     bool sendState(State* state);
 	
-	//Weight modules tuning
-	void setOffset(long left_o, long right_o);
-	void setScale(long left_s, long right_s);
-
     // run in loop
     void run();
 };
