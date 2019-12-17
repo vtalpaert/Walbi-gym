@@ -3,16 +3,28 @@
 namespace walbi_ns
 {
 
-Message read_message() { return (Message) Serial.read(); }
-
-void write_message(enum Message myMessage)
-{
-    uint8_t* Message = (uint8_t*) &myMessage;
-    Serial.write(Message, sizeof(uint8_t));
-}
-
 State lastState_;
 unsigned long timestampLastHandledMessage_ = 0;
+
+// unique constructor
+Walbi::Walbi(Stream* debugBoardStream, unsigned long intervalReadSerial, unsigned long intervalRefreshState):
+    intervalReadSerial_(intervalReadSerial), intervalRefreshState_(intervalRefreshState)
+{
+    this->servoBus_ = new ServoBus(debugBoardStream, 13);
+    this->servoBus_->setEventHandler(REPLY_POSITION, this->receivePositionFromDebugBoard_);
+    memcpy(this->motorIds, MOTOR_IDS, sizeof(this->motorIds)); // init ids with MOTOR_IDS
+}
+
+void Walbi::begin(long computerSerialBaud, unsigned char dout_left, unsigned char dout_right, unsigned char pd_sck_left, unsigned char pd_sck_right, bool autoConnect, unsigned long delay_ready)
+{
+    Serial.begin(computerSerialBaud);
+
+    this->weight_sensor_left_.begin(dout_left, pd_sck_left);
+	this->weight_sensor_right_.begin(dout_right, pd_sck_right);
+    delay(delay_ready);
+
+    if (autoConnect) { this->connect(); }
+}
 
 void Walbi::receivePositionFromDebugBoard_(uint8_t id, uint8_t command, uint16_t param1, uint16_t param2)
 {
@@ -27,11 +39,6 @@ void Walbi::receivePositionFromDebugBoard_(uint8_t id, uint8_t command, uint16_t
     // TODO find index of array according to id, now we suppose the index and id are the same
 }
 
-void waitForSerial() // blocking until Serial available
-{
-    while (!Serial.available());
-}
-
 State* Walbi::readPositionsFromDebugBoard_()
 {
     memset(lastState_.is_position_updated, 0, sizeof(bool) * MOTOR_NB);
@@ -40,6 +47,53 @@ State* Walbi::readPositionsFromDebugBoard_()
         this->servoBus_->requestPosition(this->motorIds[i]);
     }
     return &lastState_;
+}
+
+State* Walbi::getState()
+{
+    lastState_.timestamp = millis();
+    lastState_.correct_motor_reading = true;
+    this->readPositionsFromDebugBoard_(); // will update correct_motor_reading if necessary
+    lastState_.weight_left = this->weight_sensor_left_.read();
+    lastState_.weight_right = this->weight_sensor_right_.read();
+
+    return &lastState_;
+}
+
+void Walbi::act(Action* action)
+{
+    for (uint8_t i = 0; i < MOTOR_NB; i++)
+    {
+        if (action->commands[i][2] > 0){
+            this->servoBus_->MoveTime(this->motorIds[i], action->commands[i][0], action->commands[i][1]);
+        } else {
+            this->servoBus_->SetUnload(this->motorIds[i]);
+        }
+    }
+}
+
+State* Walbi::refreshStateIfNeeded_() {
+    if (millis() - lastState_.timestamp >= this->intervalRefreshState_)
+    {
+		return this->getState();
+	}
+    return &lastState_;
+}
+
+
+// Communication methods
+
+void waitForSerial() // blocking until Serial available
+{
+    while (!Serial.available());
+}
+
+Message read_message() { return (Message) Serial.read(); }
+
+void write_message(enum Message myMessage)
+{
+    uint8_t* Message = (uint8_t*) &myMessage;
+    Serial.write(Message, sizeof(uint8_t));
 }
 
 bool waitAcknowledge()
@@ -79,29 +133,6 @@ bool Walbi::receiveAction(Action* action)
     return true;
 }
 
-void Walbi::act(Action* action)
-{
-    for (uint8_t i = 0; i < MOTOR_NB; i++)
-    {
-        if (action->commands[i][2] > 0){
-            this->servoBus_->MoveTime(this->motorIds[i], action->commands[i][0], action->commands[i][1]);
-        } else {
-            this->servoBus_->SetUnload(this->motorIds[i]);
-        }
-    }
-}
-
-State* Walbi::getState()
-{
-    lastState_.timestamp = millis();
-    lastState_.correct_motor_reading = true;
-    this->readPositionsFromDebugBoard_(); // will update correct_motor_reading if necessary
-    lastState_.weight_left = this->weight_sensor_left_.read();
-    lastState_.weight_right = this->weight_sensor_right_.read();
-
-    return &lastState_;
-}
-
 bool Walbi::sendState(State* state)
 {
     write_message(STATE);
@@ -114,6 +145,16 @@ bool Walbi::sendState(State* state)
     write_i32(state->weight_left);
     write_i32(state->weight_right);
     return waitAcknowledge();
+}
+
+void Walbi::run()
+{
+	if (millis() - timestampLastHandledMessage_ >= this->intervalReadSerial_)
+    {
+		timestampLastHandledMessage_ = millis();
+		this->handleMessagesFromSerial();
+	}
+	this->refreshStateIfNeeded_();
 }
 
 bool Walbi::handleMessagesFromSerial()
@@ -215,43 +256,6 @@ bool Walbi::handleMessagesFromSerial()
         }
     }
     return true; // empty serial buffer is a successful message handling
-}
-
-State* Walbi::refreshStateIfNeeded_() {
-    if (millis() - lastState_.timestamp >= this->intervalRefreshState_)
-    {
-		return this->getState();
-	}
-    return &lastState_;
-}
-
-void Walbi::run()
-{
-	if (millis() - timestampLastHandledMessage_ >= this->intervalReadSerial_)
-    {
-		timestampLastHandledMessage_ = millis();
-		this->handleMessagesFromSerial();
-	}
-	this->refreshStateIfNeeded_();
-}
-
-Walbi::Walbi(Stream* debugBoardStream, unsigned long intervalReadSerial, unsigned long intervalRefreshState):
-    intervalReadSerial_(intervalReadSerial), intervalRefreshState_(intervalRefreshState)
-{
-    this->servoBus_ = new ServoBus(debugBoardStream, 13);
-    this->servoBus_->setEventHandler(REPLY_POSITION, this->receivePositionFromDebugBoard_);
-    memcpy(this->motorIds, MOTOR_IDS, sizeof(this->motorIds)); // init ids with MOTOR_IDS
-}
-
-void Walbi::begin(long computerSerialBaud, unsigned char dout_left, unsigned char dout_right, unsigned char pd_sck_left, unsigned char pd_sck_right, bool autoConnect, unsigned long delay_ready)
-{
-    Serial.begin(computerSerialBaud);
-
-    this->weight_sensor_left_.begin(dout_left, pd_sck_left);
-	this->weight_sensor_right_.begin(dout_right, pd_sck_right);
-    delay(delay_ready);
-
-    if (autoConnect) { this->connect(); }
 }
 
 } // namespace walbi_ns

@@ -2,9 +2,12 @@
 #define WALBI_H
 
 #include <Arduino.h>
-
 #include <Stream.h>
 
+// librarie files
+#include "Sensors.h"
+
+// external libraries
 #include "ServoBus.h"
 #include "robust_serial.h"
 #include "HX711.h"
