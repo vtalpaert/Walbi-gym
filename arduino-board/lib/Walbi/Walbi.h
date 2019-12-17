@@ -12,7 +12,7 @@
 namespace walbi_ns
 {
 
-#define PROTOCOL_VERSION 5
+#define PROTOCOL_VERSION 6
 
 const long DEBUG_BOARD_BAUD = 115200;  // Baudrate to DebugBoard
 const uint8_t MOTOR_NB = 10;
@@ -58,8 +58,7 @@ struct State
 
 struct Action
 {
-    bool activate[MOTOR_NB] = {true, true, true, true, true, true, true, true, true, true};
-    uint16_t commands[MOTOR_NB][2];
+    uint16_t commands[MOTOR_NB][3]; // [position, span, activate]
 };
 
 class Walbi

@@ -77,6 +77,7 @@ void setup() {
   for (int ii = 0; ii < nbJoints; ii++) {
     action.commands[ii][0] = center_of_mass[ii];
     action.commands[ii][1] = 500;
+    action.commands[ii][2] = 1;
   }
 
   wait_for_input("Write a single character to put Walbi in position.");
@@ -109,6 +110,7 @@ void loop() {
         Serial.print("\t");
         action.commands[ii][0] = state.positions[ii];
         action.commands[ii][1] = 250;
+        action.commands[ii][2] = 1;
       }
 
       Serial.println();

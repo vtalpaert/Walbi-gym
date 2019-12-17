@@ -191,6 +191,7 @@ void loop() {
     for (int ii = 0; ii < nbJoints; ii++) {
       action.commands[ii][0] = state.positions[ii];
       action.commands[ii][1] = 1000;
+      action.commands[ii][2] = 1;
     }
 
     handle_but_g();
@@ -201,7 +202,7 @@ void loop() {
         break;
       case 2:
         for (int ii = 0; ii < nbJoints; ii++) {
-          action.activate[ii] = true;
+          action.commands[ii][2] = 1;
         }
         walbi->act(&action);
         break;
@@ -250,14 +251,15 @@ void handle_but_d() {
       for (int ii = 0; ii < nbJoints; ii++) {
         action.commands[ii][0] = script[scripting - 1][ii];
         action.commands[ii][1] = 1000;
+        action.commands[ii][2] = 1;
       }
       if (scripting == max_scripting) {
         for (int ii = 5; ii < 10; ii++) {
-          action.activate[ii] = false;
+          action.commands[ii][2] = 0;
         }
       } else {
         for (int ii = 0; ii < nbJoints; ii++) {
-          action.activate[ii] = true;
+          action.commands[ii][2] = 1;
         }
       }
       walbi->act(&action);

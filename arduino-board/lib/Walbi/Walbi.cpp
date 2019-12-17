@@ -73,6 +73,7 @@ bool Walbi::receiveAction(Action* action)
     {
         action->commands[i][0] = read_i16(); // position
         action->commands[i][1] = read_i16(); // span
+        action->commands[i][2] = read_i16(); // activate
     }
     write_message(OK);
     return true;
@@ -82,7 +83,7 @@ void Walbi::act(Action* action)
 {
     for (uint8_t i = 0; i < MOTOR_NB; i++)
     {
-        if (action->activate[i]){
+        if (action->commands[i][2] > 0){
             this->servoBus_->MoveTime(this->motorIds[i], action->commands[i][0], action->commands[i][1]);
         } else {
             this->servoBus_->SetUnload(this->motorIds[i]);
