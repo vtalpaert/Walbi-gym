@@ -121,6 +121,13 @@ const float scale_factor_right = -408.3440;
 const long scale_offset_left = 128666;
 const long scale_offset_right = 37085;
 
+const long left_foot_thresh = 0;
+const long right_foot_thresh = 0;
+
+unsigned long currentMillis = 0;
+unsigned long lastMillis = 0;
+unsigned long interval = 1000;
+
 void setup() {
   left_foot_sensor.begin(weight_sensor_left_data, weight_sensor_left_clock);
   delay(1000);
@@ -131,7 +138,6 @@ void setup() {
   right_foot_sensor.set_offset(scale_offset_right);
   left_foot_sensor.set_scale(scale_factor_left);
   right_foot_sensor.set_scale(scale_factor_right);
-  
   pinMode(but_g_pin, INPUT_PULLUP);
   pinMode(but_d_pin, INPUT_PULLUP);
 
@@ -146,64 +152,77 @@ void setup() {
 
 
 void loop() {
-  long reading1, reading2;
-  if (left_foot_sensor.is_ready()) {
-    reading1 = left_foot_sensor.get_units();
-    Serial.print("Left HX711 reading: ");
-    Serial.println(reading1);
-  } else {
-    Serial.println("HX711 not found.");
-  }
-
-  if (right_foot_sensor.is_ready()) {
-    reading2 = right_foot_sensor.get_units();
-    Serial.print("Right HX711 reading: ");
-    Serial.println(reading2);
-  } else {
-    Serial.println("HX711 not found.");
-  }
-
-  Serial.print("Somme: ");
-  Serial.println(reading1 + reading2);
-  
-  Serial.println();
-  delay(1000);
-  
-  state = *walbi->getState();
-  for (int ii = 0; ii < nbJoints; ii++) {
-    action.commands[ii][0] = state.positions[ii];
-    action.commands[ii][1] = 1000;
-  }
-
-  handle_but_g();
-  handle_but_d();
-
-  switch (mode) {
-    case 1:
-      break;
-    case 2:
-      for (int ii = 0; ii < nbJoints; ii++) {
-        action.activate[ii] = true;
+  currentMillis = millis();
+  if (currentMillis - lastMillis >= interval)
+  {
+    lastMillis = currentMillis;
+    long reading_left, reading_right;
+    if (left_foot_sensor.is_ready()) {
+      reading_left = left_foot_sensor.get_units();
+      Serial.print("Left HX711 reading: ");
+      Serial.print(reading_left);
+      if (reading_left < left_foot_thresh){
+        Serial.print("\t\tLeft foot not touching ground!");
       }
-      walbi->act(&action);
-      break;
-  }
-
-  if (previous_mode != mode) {
-    Serial.print("Mode\t");
-    Serial.print(mode);
-    if (mode == 2) {
-      Serial.print("\t\tWalbi\t");
-      for (int ii = 0; ii < nbJoints; ii++) {
-        Serial.print(ii);
-        Serial.print(" : ");
-        Serial.print(state.positions[ii]);
-        Serial.print("\t");
-      }
+      Serial.println();
+    } else {
+      Serial.println("HX711 not found.");
     }
+
+    if (right_foot_sensor.is_ready()) {
+      reading_right = right_foot_sensor.get_units();
+      Serial.print("Right HX711 reading: ");
+      Serial.print(reading_right);
+      if (reading_right < right_foot_thresh){
+        Serial.print("\t\tRight foot not touching ground!");
+      }
+      Serial.println();
+    } else {
+      Serial.println("HX711 not found.");
+    }
+
+    Serial.print("Somme: ");
+    Serial.println(reading_left + reading_right);
+
     Serial.println();
   }
-  previous_mode = mode;
+  else {
+    state = *walbi->getState();
+    for (int ii = 0; ii < nbJoints; ii++) {
+      action.commands[ii][0] = state.positions[ii];
+      action.commands[ii][1] = 1000;
+    }
+
+    handle_but_g();
+    handle_but_d();
+
+    switch (mode) {
+      case 1:
+        break;
+      case 2:
+        for (int ii = 0; ii < nbJoints; ii++) {
+          action.activate[ii] = true;
+        }
+        walbi->act(&action);
+        break;
+    }
+
+    if (previous_mode != mode) {
+      Serial.print("Mode\t");
+      Serial.print(mode);
+      if (mode == 2) {
+        Serial.print("\t\tWalbi\t");
+        for (int ii = 0; ii < nbJoints; ii++) {
+          Serial.print(ii);
+          Serial.print(" : ");
+          Serial.print(state.positions[ii]);
+          Serial.print("\t");
+        }
+      }
+      Serial.println();
+    }
+    previous_mode = mode;
+  }
 }
 
 void handle_but_g() {

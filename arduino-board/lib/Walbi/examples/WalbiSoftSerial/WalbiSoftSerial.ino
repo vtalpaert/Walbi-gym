@@ -6,11 +6,12 @@
 #define DEBUG_BOARD_RX 11  // Arduino soft TX (debub board RX)
 
 SoftwareSerial servoBusStream(DEBUG_BOARD_TX, DEBUG_BOARD_RX); // our RX is connected to the Debug Board TX;
-walbi_ns::Walbi walbi(&servoBusStream, SERIAL_BAUD);
+walbi_ns::Walbi walbi(&servoBusStream);
 
 void setup()
 {
     servoBusStream.begin(walbi_ns::DEBUG_BOARD_BAUD); // SoftwareSerial - connects Arduino to Debug Board serial pins (RX->TX, TX->RX, GND->GND)
+    walbi.begin(SERIAL_BAUD, 34, 36, 35, 37);
 }
 
 void loop()

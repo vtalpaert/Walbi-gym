@@ -7,17 +7,16 @@
 
 #include "ServoBus.h"
 #include "robust_serial.h"
+#include "HX711.h"
 
 namespace walbi_ns
 {
 
-#define PROTOCOL_VERSION 4
+#define PROTOCOL_VERSION 5
 
 const long DEBUG_BOARD_BAUD = 115200;  // Baudrate to DebugBoard
 const uint8_t MOTOR_NB = 10;
-const uint8_t MOTOR_IDS[MOTOR_NB] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-//bool LOAD_MOTORS[MOTOR_NB] = {true, true, true, true, true, true, true, true, true, true};
-//bool UNLOAD_MOTORS[MOTOR_NB] = {false, false, false, false, false, false, false, false, false, false};
+const uint8_t MOTOR_IDS[MOTOR_NB] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}; // IDs different than [0:9] is not supported
 
 // Define the messages that can be sent and received
 enum Message {
@@ -52,6 +51,9 @@ struct State
     unsigned long timestamp;
     uint16_t positions[MOTOR_NB];
     bool is_position_updated[MOTOR_NB];
+    bool correct_motor_reading;
+    long weight_left;
+    long weight_right;
 };
 
 struct Action
@@ -63,6 +65,9 @@ struct Action
 class Walbi
 {
 private:
+    HX711 weight_sensor_left_;
+    HX711 weight_sensor_right_;
+
     ServoBus* servoBus_;
     State* readPositionsFromDebugBoard_();
 	static void receivePositionFromDebugBoard_(uint8_t id, uint8_t command, uint16_t param1, uint16_t param2);
@@ -75,7 +80,8 @@ public:
     bool isConnected = false;
     bool connect(); // run this in setup
 
-    Walbi(Stream* debugBoardStream, long computerSerialBaud, unsigned long intervalReadSerial = 0, unsigned long intervalRefreshState = 0, bool autoConnect = true);
+    Walbi(Stream* debugBoardStream, unsigned long intervalReadSerial = 0, unsigned long intervalRefreshState = 0);
+    begin(long computerSerialBaud, unsigned char dout_left, unsigned char dout_right, unsigned char pd_sck_left, unsigned char pd_sck_right, bool autoConnect = true, unsigned long delay_ready = 1000);
 
     // interact with hardware
     State* getState(); // collect from sensors
