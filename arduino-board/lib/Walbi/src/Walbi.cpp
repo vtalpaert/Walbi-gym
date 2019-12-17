@@ -7,8 +7,8 @@ State lastState_;
 unsigned long timestampLastHandledMessage_ = 0;
 
 // unique constructor
-Walbi::Walbi(Stream* debugBoardStream, unsigned long intervalReadSerial, unsigned long intervalRefreshState):
-    intervalReadSerial_(intervalReadSerial), intervalRefreshState_(intervalRefreshState)
+Walbi::Walbi(Stream* debugBoardStream, uint8_t imu_address, unsigned long intervalReadSerial, unsigned long intervalRefreshState):
+    imu(imu_address), intervalReadSerial_(intervalReadSerial), intervalRefreshState_(intervalRefreshState)
 {
     this->servoBus_ = new ServoBus(debugBoardStream, 13);
     this->servoBus_->setEventHandler(REPLY_POSITION, this->receivePositionFromDebugBoard_);
@@ -18,6 +18,7 @@ Walbi::Walbi(Stream* debugBoardStream, unsigned long intervalReadSerial, unsigne
 void Walbi::begin(long computerSerialBaud, unsigned char dout_left, unsigned char dout_right, unsigned char pd_sck_left, unsigned char pd_sck_right, bool autoConnect, unsigned long delay_ready)
 {
     Serial.begin(computerSerialBaud);
+    int success = this->imu.begin(); // TODO react to failure
 
     this->weight_sensor_left_.begin(dout_left, pd_sck_left);
 	this->weight_sensor_right_.begin(dout_right, pd_sck_right);
@@ -32,7 +33,7 @@ void Walbi::receivePositionFromDebugBoard_(uint8_t id, uint8_t command, uint16_t
     (void)param2;
     lastState_.positions[id] = param1;
     lastState_.is_position_updated[id] = true;
-    //Check for incoherences in motor readings.
+    // Check for incoherences in motor readings
 	if (param1 <= 10 || 1030 < param1) {
         lastState_.correct_motor_reading = false;
     }

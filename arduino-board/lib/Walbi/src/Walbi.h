@@ -47,10 +47,12 @@ enum ErrorCode {
     DID_NOT_EXPECT_NOK = 3,
     DID_NOT_EXPECT_MESSAGE = 4,
     NOT_IMPLEMENTED_YET = 5,
+    SENSOR_ERROR_WEIGHT = 6,
+    SENSOR_ERROR_IMU = 7,
 };
 
 struct State
-{
+{ // can only be int types
     unsigned long timestamp;
     uint16_t positions[MOTOR_NB];
     bool is_position_updated[MOTOR_NB];
@@ -60,7 +62,7 @@ struct State
 };
 
 struct Action
-{
+{ // can only be int types
     uint16_t commands[MOTOR_NB][3]; // [position, span, activate]
 };
 
@@ -78,11 +80,13 @@ private:
     unsigned long intervalReadSerial_; // interval at which to handle messages
 	unsigned long intervalRefreshState_; // interval at which to get state
 public:
+    IMU imu;
+
     uint8_t motorIds[MOTOR_NB];
     bool isConnected = false;
     bool connect(); // run this in setup
 
-    Walbi(Stream* debugBoardStream, unsigned long intervalReadSerial = 0, unsigned long intervalRefreshState = 0);
+    Walbi(Stream* debugBoardStream, uint8_t imu_address = DEFAULT_IMU_ADDRESS, unsigned long intervalReadSerial = 0, unsigned long intervalRefreshState = 0);
     void begin(long computerSerialBaud, unsigned char dout_left, unsigned char dout_right, unsigned char pd_sck_left, unsigned char pd_sck_right, bool autoConnect = true, unsigned long delay_ready = 1000);
 
     // interact with hardware

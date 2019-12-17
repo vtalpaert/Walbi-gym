@@ -1,10 +1,12 @@
-     // Implementation of Sebastian Madgwick's "...efficient orientation filter for... inertial/magnetic sensor arrays"
+#include "MadgwickFilter.h"
+
+// Implementation of Sebastian Madgwick's "...efficient orientation filter for... inertial/magnetic sensor arrays"
 // (see http://www.x-io.co.uk/category/open-source/ for examples and more details)
 // which fuses acceleration, rotation rate, and magnetic moments to produce a quaternion-based estimate of absolute
 // device orientation -- which can be converted to yaw, pitch, and roll. Useful for stabilizing quadcopters, etc.
 // The performance of the orientation filter is at least as good as conventional Kalman-based filtering algorithms
 // but is much less computationally intensive---it can be performed on a 3.3 V Pro Mini operating at 8 MHz!
-__attribute__((optimize("O3"))) void MadgwickQuaternionUpdate(float ax, float ay, float az, float gx, float gy, float gz, float mx, float my, float mz)
+__attribute__((optimize("O3"))) void MadgwickFilter::MadgwickQuaternionUpdate(float ax, float ay, float az, float gx, float gy, float gz, float mx, float my, float mz)
         {
             float q1 = q[0], q2 = q[1], q3 = q[2], q4 = q[3];   // short name local variable for readability
             float norm;
@@ -93,5 +95,25 @@ __attribute__((optimize("O3"))) void MadgwickQuaternionUpdate(float ax, float ay
             q[1] = q2 * norm;
             q[2] = q3 * norm;
             q[3] = q4 * norm;
-
         }
+
+void MadgwickFilter::EulerAnglesCalculation(float yaw_correction)
+{
+    Now = micros();
+    deltat = ((Now - lastUpdate)/1000000.0f); // set integration time by time elapsed since last filter update
+    lastUpdate = Now;
+
+    a12 =   2.0f * (q[1] * q[2] + q[0] * q[3]);
+    a22 =   q[0] * q[0] + q[1] * q[1] - q[2] * q[2] - q[3] * q[3];
+    a31 =   2.0f * (q[0] * q[1] + q[2] * q[3]);
+    a32 =   2.0f * (q[1] * q[3] - q[0] * q[2]);
+    a33 =   q[0] * q[0] - q[1] * q[1] - q[2] * q[2] + q[3] * q[3];
+    pitch = -asinf(a32);
+    roll  = atan2f(a31, a33);
+    yaw   = atan2f(a12, a22);
+    pitch *= 180.0f / pi;
+    yaw   *= 180.0f / pi;
+    yaw += yaw_correction;
+    //if(yaw < 0) yaw   += 360.0f; // Ensure yaw stays between 0 and 360
+    roll  *= 180.0f / pi;
+}
