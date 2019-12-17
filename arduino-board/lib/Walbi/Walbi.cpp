@@ -243,7 +243,7 @@ Walbi::Walbi(Stream* debugBoardStream, unsigned long intervalReadSerial, unsigne
     memcpy(this->motorIds, MOTOR_IDS, sizeof(this->motorIds)); // init ids with MOTOR_IDS
 }
 
-Walbi::begin(long computerSerialBaud, unsigned char dout_left, unsigned char dout_right, unsigned char pd_sck_left, unsigned char pd_sck_right, bool autoConnect, unsigned long delay_ready)
+void Walbi::begin(long computerSerialBaud, unsigned char dout_left, unsigned char dout_right, unsigned char pd_sck_left, unsigned char pd_sck_right, bool autoConnect, unsigned long delay_ready)
 {
     Serial.begin(computerSerialBaud);
 

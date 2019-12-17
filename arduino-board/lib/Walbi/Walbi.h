@@ -80,7 +80,7 @@ public:
     bool connect(); // run this in setup
 
     Walbi(Stream* debugBoardStream, unsigned long intervalReadSerial = 0, unsigned long intervalRefreshState = 0);
-    begin(long computerSerialBaud, unsigned char dout_left, unsigned char dout_right, unsigned char pd_sck_left, unsigned char pd_sck_right, bool autoConnect = true, unsigned long delay_ready = 1000);
+    void begin(long computerSerialBaud, unsigned char dout_left, unsigned char dout_right, unsigned char pd_sck_left, unsigned char pd_sck_right, bool autoConnect = true, unsigned long delay_ready = 1000);
 
     // interact with hardware
     State* getState(); // collect from sensors
