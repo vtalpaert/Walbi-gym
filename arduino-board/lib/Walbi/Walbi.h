@@ -16,7 +16,7 @@ namespace walbi_ns
 
 const long DEBUG_BOARD_BAUD = 115200;  // Baudrate to DebugBoard
 const uint8_t MOTOR_NB = 10;
-const uint8_t MOTOR_IDS[MOTOR_NB] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+const uint8_t MOTOR_IDS[MOTOR_NB] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}; // IDs different than [0:9] is not supported
 
 // Define the messages that can be sent and received
 enum Message {
@@ -48,10 +48,10 @@ enum ErrorCode {
 
 struct State
 {
-    bool correct_motor_reading;
-	unsigned long timestamp;
+    unsigned long timestamp;
     uint16_t positions[MOTOR_NB];
     bool is_position_updated[MOTOR_NB];
+    bool correct_motor_reading;
     long weight_left;
     long weight_right;
 };
@@ -90,7 +90,7 @@ public:
     bool handleMessagesFromSerial();
     bool receiveAction(Action* action);
     bool sendState(State* state);
-	
+
     // run in loop
     void run();
 };

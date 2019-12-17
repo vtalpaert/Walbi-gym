@@ -20,8 +20,11 @@ void Walbi::receivePositionFromDebugBoard_(uint8_t id, uint8_t command, uint16_t
     (void)param2;
     lastState_.positions[id] = param1;
     lastState_.is_position_updated[id] = true;
+    //Check for incoherences in motor readings.
+	if (param1 <= 10 || 1030 < param1) {
+        lastState_.correct_motor_reading = false;
+    }
     // TODO find index of array according to id, now we suppose the index and id are the same
-    // TODO do something if receiving failed
 }
 
 void waitForSerial() // blocking until Serial available
@@ -86,18 +89,11 @@ void Walbi::act(Action* action)
 State* Walbi::getState()
 {
     lastState_.timestamp = millis();
-    this->readPositionsFromDebugBoard_();
+    lastState_.correct_motor_reading = true;
+    this->readPositionsFromDebugBoard_(); // will update correct_motor_reading if necessary
     lastState_.weight_left = this->weight_sensor_left_.read();
     lastState_.weight_right = this->weight_sensor_right_.read();
-	lastState_.correct_motor_reading = true;
-	
-	//Check for incoherences in motor readings.
-	for (int ii = 0; ii < MOTOR_NB; ii++) {
-      if (lastState_.positions[ii] <= 10 || lastState_.positions[ii] > 1030) {
-        lastState_.correct_motor_reading = false;
-      }
-    }
-	
+
     return &lastState_;
 }
 
@@ -249,7 +245,6 @@ Walbi::begin(long computerSerialBaud, unsigned char dout_left, unsigned char dou
     this->weight_sensor_left_.begin(dout_left, pd_sck_left);
 	this->weight_sensor_right_.begin(dout_right, pd_sck_right);
     delay(delay_ready);
-    
 
     if (autoConnect) { this->connect(); }
 }
