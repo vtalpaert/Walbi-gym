@@ -25,6 +25,13 @@ public:
     int begin();
     void update();
     void calibrateMag(); // prints to Serial, beware it has .begin()
+
+    int16_t convertAccel(float a);
+    float convertAccel(int16_t a_raw);
+    int16_t convertGyro(float g);
+    float convertGyro(int16_t g_raw);
+    int16_t convertAngleDeg(float angle);
+    float convertAngleDeg(int16_t angle);
 }; // end IMU
 
 #endif // SENSORS_H

@@ -104,6 +104,10 @@ Build Walbi according to [original instructions](https://create.arduino.cc/proje
 1. Version `0.1.1` with `protocol-v1` adds time interval
 1. Version `0.1.2` with `protocol-v2` removes the time interval, it is now directly the timestamp in the info dictionnary
 1. Version `0.1.3` with `protocol-v3` is more straightforward with less OK messages (e.g. STEP does not send ACTION anymore). Also the responsability for a reward and termination is left to the `Env`
+1. Version `0.1.4` with `protocol-v4` adds correct_motor_reading to State (debug)
+1. Version `0.1.5` with `protocol-v5` adds weight data to State
+1. Version `0.1.6` with `protocol-v6` adds activate to Action
+1. Version `0.1.7` with `protocol-v7` adds IMU data to State
 
 ## Acknowledgements
 

@@ -15,7 +15,7 @@
 namespace walbi_ns
 {
 
-#define PROTOCOL_VERSION 6
+#define PROTOCOL_VERSION 7
 
 const long DEBUG_BOARD_BAUD = 115200;  // Baudrate to DebugBoard
 const uint8_t MOTOR_NB = 10;
@@ -59,6 +59,7 @@ struct State
     bool correct_motor_reading;
     long weight_left;
     long weight_right;
+    int16_t imu[9]; // [ax, ay, az, gx, gy, gz, roll, pitch, yaw]
 };
 
 struct Action

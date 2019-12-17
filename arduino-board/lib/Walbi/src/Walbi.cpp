@@ -57,7 +57,15 @@ State* Walbi::getState()
     this->readPositionsFromDebugBoard_(); // will update correct_motor_reading if necessary
     lastState_.weight_left = this->weight_sensor_left_.read();
     lastState_.weight_right = this->weight_sensor_right_.read();
-
+    lastState_.imu[0] = imu.convertAccel(imu.ax);
+    lastState_.imu[1] = imu.convertAccel(imu.ay);
+    lastState_.imu[2] = imu.convertAccel(imu.az);
+    lastState_.imu[3] = imu.convertGyro(imu.gx);
+    lastState_.imu[4] = imu.convertGyro(imu.gx);
+    lastState_.imu[5] = imu.convertGyro(imu.gx);
+    lastState_.imu[6] = imu.convertAngleDeg(imu.roll);
+    lastState_.imu[7] = imu.convertAngleDeg(imu.pitch);
+    lastState_.imu[8] = imu.convertAngleDeg(imu.yaw);
     return &lastState_;
 }
 
@@ -143,8 +151,13 @@ bool Walbi::sendState(State* state)
         write_i16(state->positions[i]);
         write_i8(state->is_position_updated[i]);
     }
+    write_i8(state->correct_motor_reading);
     write_i32(state->weight_left);
     write_i32(state->weight_right);
+    for (uint8_t i = 0; i < 9; i++)
+    {
+        write_i16(state->imu[i]); // [ax, ay, az, gx, gy, gz, roll, pitch, yaw]
+    }
     return waitAcknowledge();
 }
 

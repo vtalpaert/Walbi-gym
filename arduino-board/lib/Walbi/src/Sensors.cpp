@@ -56,7 +56,7 @@ void IMU::calibrateMag(){
     Serial.println(this->mpu_->getMagScaleFactorZ(), 6);
 
     delay(200000); // add delay to see results before serial spew of data
-}
+};
 
 
 void IMU::update()
@@ -80,4 +80,38 @@ void IMU::update()
     this->roll = this->filter_.roll;
     this->pitch = this->filter_.pitch;
     this->yaw = this->filter_.yaw;
-}
+};
+
+int16_t IMU::convertAccel(float a)
+{
+    return (int16_t) a * 1000;
+};
+
+float IMU::convertAccel(int16_t a_raw)
+{
+    return (float) a_raw / 1000;
+};
+
+int16_t IMU::convertGyro(float g)
+{
+    return (int16_t) g * 10;
+};
+
+float IMU::convertGyro(int16_t g_raw)
+{
+    return (float) g_raw / 10;
+};
+
+int16_t IMU::convertAngleDeg(float angle)
+{
+    if (angle > 180)
+    {
+        angle -= 180;
+    }
+    return (int16_t) angle * 1000;
+};
+
+float IMU::convertAngleDeg(int16_t angle_raw)
+{
+    return (float) angle_raw / 1000;
+};
