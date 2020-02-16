@@ -4,6 +4,17 @@ communication:
   timeout_expect_message: 0.5  # [s] raise when a message is not received in given time
   baud_rate: 115200  # baud rate between computer and arduino
 
+sensors:
+  weight:
+    scale_factor_left: -404.4138
+    scale_factor_right: -408.3440
+    scale_offset_left: 128666
+    scale_offset_right: 37085
+  imu:
+    scale_factor_accel: 1000
+    scale_factor_gyro: 10
+    scale_factor_angle_deg: 1000
+
 motors:
   ranges:
     positions:  # [] position encoder ticks

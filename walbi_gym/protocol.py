@@ -1,6 +1,6 @@
 from enum import IntEnum
 
-PROTOCOL_VERSION = 4  # int: protocol version
+PROTOCOL_VERSION = 7  # int: protocol version
 
 class Message(IntEnum):
     """
@@ -27,11 +27,14 @@ ERROR_CODES = {  # must be coherent with what Walbi.cpp throws
     3: 'DID_NOT_EXPECT_NOK',
     4: 'DID_NOT_EXPECT_MESSAGE',
     5: 'NOT_IMPLEMENTED_YET',
+    6: 'SENSOR_ERROR_WEIGHT',
+    7: 'SENSOR_ERROR_IMU',
 }
 
 MESSAGE_TYPES = {
-    Message.STEP: [['int16', 'int16']] * 10,  # two values per motor # for Message.ACTION as well
-    Message.STATE: ['int32'] + ['int16', 'int8'] * 10,  # ts, 10 * (position, is_position_updated)
+    Message.STEP: [['int16', 'int16', 'int16']] * 10,  # three values per motor [position, span, activate] # for Message.ACTION as well
+    # STATE: ts, [position, is_position_updated] * 10, correct_motor_reading, weight * 2, imu * 9
+    Message.STATE: ['int32'] + ['int16', 'int8'] * 10 + ['int8', 'int32', 'int32'] + ['int16'] * 9,
     Message.ERROR: ['int8'],  # error code
     Message.VERSION: ['int8'],
 }
