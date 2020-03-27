@@ -3,10 +3,9 @@ from typing import TypeVar, List, Tuple, Sequence
 import numpy as np
 from gym import Env, spaces
 
-from walbi_gym.protocol import Message, PROTOCOL_VERSION
-from walbi_gym.communication import BaseInterface, make_interface
 from walbi_gym.configuration import config
 from walbi_gym.envs.utils import constrain_spaces
+from walbi_gym.walbi import Walbi
 
 
 _DecimalList = TypeVar('DecimalList', np.ndarray, Sequence[float])
@@ -16,7 +15,6 @@ ActionType = _DecimalList
 
 class WalbiEnv(Env):
     name = 'Walbi'
-    protocol_version = PROTOCOL_VERSION
     config = config
     action_space = spaces.Box(
         low=-1,
@@ -41,16 +39,11 @@ class WalbiEnv(Env):
         dtype=np.int16
     )
 
-    def __init__(self, interface='serial', autoconnect=True, verify_version=True, *args, **kwargs):
-        self.interface = make_interface(interface, *args, **kwargs)
-        if autoconnect and not self.interface.is_connected:
-            self.interface.connect()
-        if verify_version and self.interface.is_connected and self.interface.verify_version():
-            print('Version OK')
+    def __init__(self, *args, **kwargs):
+        self.walbi = Walbi(*args, **kwargs)
 
     def reset(self, return_interpretation: bool=False) -> ObservationType:
-        self.interface.put_command(Message.RESET, expect_ok=True)
-        state = self._receive_state()
+        state = self.walbi.get_last_state()
         observation = self._state_to_observation(state)
         if not return_interpretation:
             return self._state_to_observation(state)
@@ -59,16 +52,15 @@ class WalbiEnv(Env):
             return observation, reward, done, info
 
     def step(self, action: ActionType) -> Tuple[ObservationType, float, bool, dict]:
-        int16_action = self._convert_action_norm_to_raw(action)
-        self.interface.put_command(Message.STEP, param=int16_action, expect_ok=True)
-        state = self._receive_state()
+        self._send_action(action)
+        state = self.walbi.get_last_state()
         observation = self._state_to_observation(state)
         reward, done, info = self._state_interpretation(state)
         return observation, reward, done, info
 
     def _send_action(self, action: ActionType):
         int16_action = self._convert_action_norm_to_raw(action)
-        self.interface.put_command(Message.ACTION, param=int16_action, expect_ok=True)
+        self.walbi.send_action(int16_action)
 
     @classmethod
     def _convert_action_norm_to_raw(cls, action: ActionType) -> np.ndarray:
@@ -95,21 +87,12 @@ class WalbiEnv(Env):
         observation = self._convert_obs_raw_to_norm(raw_observation)
         return observation
 
-    def _ask_state(self):
-        self.interface.put_command(Message.STATE, expect_ok=True)
-        return self._receive_state()
-
-    def _receive_state(self):
-        state = self.interface.expect_or_raise(Message.STATE)
-        return state
-
     def render(self, mode='human'):
         """TODO"""
 
     def close(self):
         print('Exiting...')
-        if self.interface.is_connected:
-            self.interface.close()
+        self.walbi.close()
 
 
 if __name__ == '__main__':

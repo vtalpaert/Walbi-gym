@@ -7,7 +7,7 @@ import serial
 import socket
 
 from walbi_gym.communication.threads import CommandThread, ListenerThread, CustomQueue, queue
-from walbi_gym.envs import errors
+from walbi_gym import errors
 from walbi_gym.protocol import Message
 from walbi_gym import protocol
 from walbi_gym.communication import robust_serial
@@ -35,14 +35,10 @@ def read_types(type_list, file):
 
 
 def write_types(type_list, data, file):
-    """data can be a list of types [t1, t2] or list of list of types [[t1, t2], [t1, t2]]"""
+    """data can be a list of types [t1, t2]"""
     try:
         for t, value in zip(type_list, data):
-            if isinstance(t, str):
-                MAP_TYPE_WRITE[t](file, value)
-            else:  # assume second case
-                for sub_t, sub_value in zip(t, value):
-                    MAP_TYPE_WRITE[sub_t](file, sub_value)
+            MAP_TYPE_WRITE[t](file, value)
     except KeyError:
         raise errors.WalbiCommunicationError('%s has an invalid type' % str(type_list))
 
@@ -71,6 +67,10 @@ class BaseInterface(ABC):
         ]
         for t in self._threads:
             t.start()
+
+    @property
+    def queue(self):
+        return self._received_queue
 
     def connect(self):
         # Initialize communication with Arduino
@@ -106,7 +106,7 @@ class BaseInterface(ABC):
         if arduino_version != protocol.PROTOCOL_VERSION:
             raise errors.WalbiProtocolVersionError()
         return True
-    
+
     def _read_byte(self):
         try:
             bytes_array = bytearray(self.file.read(1))

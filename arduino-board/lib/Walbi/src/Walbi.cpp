@@ -5,6 +5,7 @@ namespace walbi_ns
 
 State lastState_;
 unsigned long timestampLastHandledMessage_ = 0;
+unsigned long timestampLastSendState_ = 0;
 
 // unique constructor
 Walbi::Walbi(Stream* debugBoardStream, uint8_t imu_address, unsigned long intervalReadSerial, unsigned long intervalRefreshState):
@@ -31,7 +32,7 @@ void Walbi::receivePositionFromDebugBoard_(uint8_t id, uint8_t command, uint16_t
 {
     (void)command;
     (void)param2;
-    lastState_.positions[id] = param1;
+    lastState_.position[id] = param1;
     lastState_.is_position_updated[id] = true;
     // Check for incoherences in motor readings
 	if (param1 <= 10 || 1030 < param1) {
@@ -73,8 +74,8 @@ void Walbi::act(Action* action)
 {
     for (uint8_t i = 0; i < MOTOR_NB; i++)
     {
-        if (action->commands[i][2] > 0){
-            this->servoBus_->MoveTime(this->motorIds[i], action->commands[i][0], action->commands[i][1]);
+        if (action->activate[i]){
+            this->servoBus_->MoveTime(this->motorIds[i], action->position[i], action->span[i]);
         } else {
             this->servoBus_->SetUnload(this->motorIds[i]);
         }
@@ -134,9 +135,9 @@ bool Walbi::receiveAction(Action* action)
     // assume ACTION msg already received
     for (uint8_t i = 0; i < MOTOR_NB; i++)
     {
-        action->commands[i][0] = read_i16(); // position
-        action->commands[i][1] = read_i16(); // span
-        action->commands[i][2] = read_i16(); // activate
+        action->position[i] = read_i16(); // position
+        action->span[i] = read_i16(); // span
+        action->activate[i] = bool(read_i8()); // activate
     }
     write_message(OK);
     return true;
@@ -148,7 +149,7 @@ bool Walbi::sendState(State* state)
     write_i32(state->timestamp);
     for (uint8_t i = 0; i < MOTOR_NB; i++)
     {
-        write_i16(state->positions[i]);
+        write_i16(state->position[i]);
         write_i8(state->is_position_updated[i]);
     }
     write_i8(state->correct_motor_reading);
@@ -158,7 +159,20 @@ bool Walbi::sendState(State* state)
     {
         write_i16(state->imu[i]); // [ax, ay, az, gx, gy, gz, roll, pitch, yaw]
     }
-    return waitAcknowledge();
+    if waitAcknowledge()
+    {
+        timestampLastSendState_ = millis();
+        return true;
+    }
+    return false;
+}
+
+bool Walbi::sendStateIfNeeded_(State* state)
+{
+    if (this->isConnected && millis() - timestampLastSendState_ >= this->intervalSendState_)
+    {
+		this->sendState(state);
+	}
 }
 
 void Walbi::run()
@@ -169,6 +183,7 @@ void Walbi::run()
 		this->handleMessagesFromSerial();
 	}
 	this->refreshStateIfNeeded_();
+    this->sendStateIfNeeded_();
 }
 
 bool Walbi::handleMessagesFromSerial()
@@ -194,25 +209,25 @@ bool Walbi::handleMessagesFromSerial()
                 return true;
             }
             case ALREADY_CONNECTED: { this->isConnected = true; return true; }
-            case RESET:
+            case ERROR:
             {
-                write_message(OK);
-                State* statePtr = this->refreshStateIfNeeded_();
-                return this->sendState(statePtr);
+                write_message(ERROR);
+                write_i8(DID_NOT_EXPECT_MESSAGE);  // We are sending the errors !
+                return false;
             }
-            case STEP:
+            case VERSION:
             {
-                Action action;
-                if (this->receiveAction(&action))
-                {
-                    this->act(&action);
-                    State* statePtr = this->refreshStateIfNeeded_();
-                    return this->sendState(statePtr);
-                }
-                else
-                {
-                    return false; // receiving action has failed
-                }
+                int8_t version = read_i8();
+                write_message(OK);
+                write_message(VERSION);
+                write_i8(PROTOCOL_VERSION);
+                return waitAcknowledge();
+            }
+            case SET:
+            {
+                this->intervalSendState_ = read_i32();
+                write_message(OK);
+                return true;
             }
             case ACTION:
             {
@@ -233,32 +248,6 @@ bool Walbi::handleMessagesFromSerial()
                 write_message(OK);
                 State* statePtr = this->refreshStateIfNeeded_();
                 return this->sendState(statePtr);
-            }
-            case VERSION:
-            {
-                int8_t version = read_i8();
-                write_message(OK);
-                write_message(VERSION);
-                write_i8(PROTOCOL_VERSION);
-                return waitAcknowledge();
-            }
-            case INFO:
-            {
-                write_message(ERROR);
-                write_i8(NOT_IMPLEMENTED_YET);
-                return false;
-            }
-            case CLOSE:
-            {
-                write_message(ERROR);
-                write_i8(NOT_IMPLEMENTED_YET);
-                return false;
-            }
-            case OK:
-            {
-                write_message(ERROR);
-                write_i8(DID_NOT_EXPECT_OK);
-                return false;
             }
             // Unknown message
             default:

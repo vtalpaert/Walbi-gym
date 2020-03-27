@@ -57,7 +57,7 @@ setup(
     name='walbi-gym',
     url='https://github.com/vtalpaert/Walbi-gym',
     # TODO download_url='git+https://github.com/vtalpaert/Walbi-gym#egg=walbi-gym-dev',
-    version='0.1.4',
+    version='0.2.0',
     description='Gym interface for Walbi robot',
     long_description='Walbi Gym interacts with the Walbi robot following the OpenAI gym API.',
     install_requires=[

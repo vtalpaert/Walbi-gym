@@ -108,6 +108,7 @@ Build Walbi according to [original instructions](https://create.arduino.cc/proje
 1. Version `0.1.5` with `protocol-v5` adds weight data to State
 1. Version `0.1.6` with `protocol-v6` adds activate to Action
 1. Version `0.1.7` with `protocol-v7` adds IMU data to State
+1. Version `0.2.0` with `protocol-v8` is a simplification of the protocol and breaks pervious API
 
 ## Acknowledgements
 
