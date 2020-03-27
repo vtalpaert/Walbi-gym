@@ -6,12 +6,12 @@ import typing
 import serial
 import socket
 
-from walbi_gym.communication.threads import CommandThread, ListenerThread, CustomQueue, queue
-from walbi_gym import errors
-from walbi_gym.protocol import Message
-from walbi_gym import protocol
-from walbi_gym.communication import robust_serial
-from walbi_gym.configuration import config
+from walbi.communication.threads import CommandThread, ListenerThread, CustomQueue, queue
+from walbi import errors
+from walbi.protocol import Message
+from walbi import protocol
+from walbi.communication import robust_serial
+from walbi.configuration import config
 
 
 MAP_TYPE_READ = {

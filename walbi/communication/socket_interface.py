@@ -2,7 +2,7 @@ import socket
 from abc import ABC
 from warnings import warn
 
-from walbi_gym.communication.base import BaseInterface
+from walbi.communication.base import BaseInterface
 
 
 class SocketInterface(BaseInterface, ABC):

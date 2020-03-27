@@ -6,8 +6,8 @@ try:
 except ImportError:
     import Queue as queue
 
-from walbi_gym.protocol import Message
-from walbi_gym.configuration import config
+from walbi.protocol import Message
+from walbi.configuration import config
 
 rate = config['communication']['thread_rate']
 

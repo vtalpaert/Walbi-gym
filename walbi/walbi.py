@@ -1,9 +1,9 @@
 import numpy as np
 
-from walbi_gym.protocol import Message, PROTOCOL_VERSION
-from walbi_gym import errors
-from walbi_gym.communication import BaseInterface, make_interface
-from walbi_gym.configuration import config
+from walbi.protocol import Message, PROTOCOL_VERSION
+from walbi import errors
+from walbi.communication import BaseInterface, make_interface
+from walbi.configuration import config
 
 
 class Walbi(object):

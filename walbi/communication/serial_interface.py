@@ -4,9 +4,9 @@ import glob
 
 import serial
 
-from walbi_gym.envs.errors import WalbiError
-from walbi_gym.configuration import config
-from walbi_gym.communication.base import BaseInterface
+from walbi.errors import WalbiError
+from walbi.configuration import config
+from walbi.communication.base import BaseInterface
 
 
 # From https://stackoverflow.com/questions/12090503/listing-available-com-ports-with-python

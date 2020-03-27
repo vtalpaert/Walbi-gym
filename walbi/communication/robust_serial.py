@@ -2,7 +2,7 @@ from __future__ import print_function, division, unicode_literals, absolute_impo
 
 import struct
 
-from walbi_gym.protocol import Message
+from walbi.protocol import Message
 
 
 def read_message(f):

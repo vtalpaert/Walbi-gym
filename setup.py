@@ -3,17 +3,6 @@ from distutils.dir_util import copy_tree
 from os import getenv, walk
 from pathlib import Path
 
-extras = {
-  'bluetooth': ['pybluez'],  # requires libbluetooth-dev
-  'pid': ['pid_controller'],
-}
-
-# Meta dependency groups.
-all_deps = []
-for group_name in extras:
-    all_deps += extras[group_name]
-extras['all'] = all_deps
-
 
 # Get Arduino libraries folder
 def list_data_files():
@@ -67,12 +56,14 @@ setup(
         'gym',
         'ruamel.yaml',
         'setuptools_git',
+        'pybluez',  # requires libbluetooth-dev
+        'pid_controller',
     ],
     data_files = list_data_files(),
     include_package_data=True,
     packages=find_packages(),
     # TODO zip_safe=False,  # force setuptools to install the package as a directory rather than an .egg
-    extras_require=extras,
+    #extras_require=extras, # removed, we install everything
     cmdclass={
         'copy_libraries': LibrariesCopy,
     },

@@ -1,6 +1,6 @@
 from gym.error import Error
 
-from walbi_gym.protocol import ERROR_CODES
+from walbi.protocol import ERROR_CODES
 
 
 class WalbiError(Error):
