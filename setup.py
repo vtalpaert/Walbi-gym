@@ -1,4 +1,6 @@
 from setuptools import setup, find_packages, Command
+from setuptools.command.develop import develop
+from subprocess import check_call
 from distutils.dir_util import copy_tree
 from os import getenv, walk
 from pathlib import Path
@@ -41,6 +43,13 @@ class LibrariesCopy(Command):
         copy_tree(str(Path('arduino-board') / 'lib'), self.target_arduino_dir)
         print('Copied libraries to', self.target_arduino_dir)
 
+class Extend(develop):
+    """Customized setuptools command"""
+    def run(self):
+        develop.run(self)
+        check_call("mkdir -p walbi/diy-gym/diy_gym/data/walbi".split())
+        check_call("cp walbi/walbi_gym/data/humanoid_leg_10dof.urdf walbi/diy-gym/diy_gym/data/walbi".split())
+        check_call("cp walbi/walbi_gym/data/humanoid_leg_12dof.8.urdf walbi/diy-gym/diy_gym/data/walbi".split())
 
 setup(
     name='walbi-gym',
@@ -53,18 +62,24 @@ setup(
         'pyserial',
         'enum34',
         'numpy',
-        'gym',
+        'gym>=0.10',
         'ruamel.yaml',
         'setuptools_git',
         'pybluez',  # requires libbluetooth-dev
         'pid_controller',
+        'pybullet',
+        'pyyaml',
+        'tqdm',
+        'argparse',
+        'requests',
     ],
     data_files = list_data_files(),
     include_package_data=True,
     packages=find_packages(),
-    # TODO zip_safe=False,  # force setuptools to install the package as a directory rather than an .egg
+    zip_safe=False,  # force setuptools to install the package as a directory rather than an .egg
     #extras_require=extras, # removed, we install everything
     cmdclass={
+        'develop': Extend,
         'copy_libraries': LibrariesCopy,
     },
     classifiers=[

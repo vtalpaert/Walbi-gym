@@ -7,3 +7,6 @@
 [submodule "arduino-board/lib/MPU9250"]
 	path = arduino-board/lib/MPU9250
 	url = https://github.com/bolderflight/MPU9250.git
+[submodule "walbi/diy-gym"]
+	path = walbi/diy-gym
+	url = https://github.com/ascentai/diy-gym
