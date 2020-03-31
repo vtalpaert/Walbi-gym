@@ -75,32 +75,11 @@ class PoiseReward(Addon):
         p.resetBasePositionAndOrientation(self.uid, *self.initial_pose)
 
 
-class FellOver(Addon):
-    """FellOver defines an addon that can be used to apply an external force to the base a model.
-    It's used here to show how to define a custom addon and integrate it into DIYGym.
-    """
-    def __init__(self, parent, config):
-        super(FellOver, self).__init__(parent, config)
-        self.uid = parent.uid
-        self.penality = config.get('penality', 0.)
-        self.height_limit = config.get('height_limit', 0)
-        self.initial_pose = p.getBasePositionAndOrientation(self.uid)
-
-    def reward(self):
-        if self.penality and self.is_terminal():
-            return - self.penality
-        return 0
-
-    def is_terminal(self):
-        pose = p.getBasePositionAndOrientation(self.uid)
-        z = pose[0][2]
-        return z < self.height_limit
-
-    def reset(self):
-        p.resetBasePositionAndOrientation(self.uid, *self.initial_pose)
-
-
 class ExtendedObjectStateSensor(ObjectStateSensor):
+    """Add acceleration sensing
+    
+    Known issue: measures acceleration on complete robot, not only one object
+    """
     def __init__(self, parent, config):
         self.include_acceleration = config.get('include_acceleration', False)
         if self.include_acceleration:
@@ -128,7 +107,6 @@ class ExtendedObjectStateSensor(ObjectStateSensor):
 
 
 AddonFactory.register_addon('velocity_reward', VelocityReward)
-AddonFactory.register_addon('fell_over', FellOver)
 AddonFactory.register_addon('poise_reward', PoiseReward)
 AddonFactory.register_addon('extended_object_state_sensor', ExtendedObjectStateSensor)
 
@@ -199,6 +177,8 @@ class WalbiObservationRestriction(gym.ObservationWrapper):
         return scaling * np.array(joint_positions + joint_rate + [weight_left, weight_right] + accelerometer + gyrometer, dtype='float32')
 
     def _reduce_precision_int16(self, value, float_to_int_factor):
+        """Represents how a physical value is encoded as an int16 on the Arduino, transmitted,
+        then converted to a float"""
         if isinstance(value, (list, tuple, np.ndarray)):
             return [self._reduce_precision_int16(v, float_to_int_factor) for v in value]
         else:
@@ -207,45 +187,25 @@ class WalbiObservationRestriction(gym.ObservationWrapper):
             else:
                 return 0
 
-    def sample_scripted_action(self, i):
-        #action = np.array([0, -0.5, 1., -0.5, 0, 0, -0.5, 1., -0.5, 0])
-        rate = 5000
-        positions = [
-            [0, -0.5, 1., -0.5, 0, 0, -0.5, 1., -0.5, 0],
-            [0.15, -0.5, 1., -0.5, -0.15, 0.15, -0.5, 1.3, -0.65, 0]
-        ]
-        choice = min(i // rate, len(positions) - 2)
-        position = positions[choice]
-        p = (i % rate) / rate
-        action = (1-p) * np.array(position[choice]) + p * np.array(position[choice+1])
-        return action
-
 
 def make_env():
+    # should use absolute path in yaml config file to avoid URDF files copy
     config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'walbi.yaml')
     env = WalbiObservationRestriction(DIYGym(config_file))
     return env
 
 
 if __name__ == '__main__':
-    from pprint import pprint
-    #from collections import deque
     from itertools import count
     import time
 
     env = make_env()
 
-    #obs_list = deque(maxlen=1000)
-
     observation = env.reset()
     print('action space', env.action_space.low, env.action_space.high)
     for i in count(1):
-        
         action = np.array([0, -0.5, 1., -0.5, 0, 0, -0.5, 1., -0.5, 0])
         observation, reward, terminal, info = env.step(action)
-        #obs_list.append(observation)
-        #print(np.mean(np.array(obs_list), axis=0)[20])
-        #print(terminal)
 
         #if terminal:
         #    env.reset()
