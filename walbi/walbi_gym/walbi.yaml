@@ -1,0 +1,64 @@
+#update_freq: 100
+#timestep: 0.01
+terminal_if_any: yes
+max_episode_steps: 10000
+sum_rewards: yes
+flatten_actions: yes
+hot_start: 5
+
+plane:
+    model: plane.urdf
+
+robot:
+    model: walbi/humanoid_leg_10dof.urdf
+    xyz: [0., 0., 0.3]
+
+    #dynamics:
+    #    addon: dynamics_randomizer
+    #    mass_range: [0.25, 4.0]
+    #    damping_range: [0.2, 20]
+
+
+    # action
+    controller:
+        addon: joint_controller
+        control_mode: position
+        rest_position: [0, -0.5, 1., -0.5, 0, 0, -0.5, 1., -0.5, 0]
+        joints: [jointHipRX, jointHipRY, jointKneeRY, jointankleRY, jointankleRX,
+                jointHipLX, jointHipLY, jointKneeLY, jointankleLY, jointankleLX]  # took out jointHipRZ, jointHipLZ
+
+
+    #observation
+    joint_state:
+        addon: joint_state_sensor
+        include_velocity: yes
+
+    weight_module_left:
+        addon: force_torque_sensor
+        frame: jointankleLX
+
+    weight_module_right:
+        addon: force_torque_sensor
+        frame: jointankleRX
+
+    pose:
+        addon: extended_object_state_sensor
+        include_rotation: yes
+        include_acceleration: yes
+
+
+    # rewards
+    lazy_robot:
+        addon: electricity_cost
+        multiplier: 0.005  # reduce value to encourage move_forward reward
+
+    move_forward:
+        addon: velocity_reward
+        axis: 0
+        upper_limit: 0.25  # does not expect robot to move faster than 0.25 m/s, so discourage falling over
+        multiplier: 1
+
+    poise:
+        addon: poise_reward  # also does termination and reset
+        # default options were fit to walbi
+        terminal_penality: 25
