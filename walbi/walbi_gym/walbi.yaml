@@ -12,6 +12,7 @@ plane:
 robot:
     model: walbi/humanoid_leg_10dof.urdf
     xyz: [0., 0., 0.3]
+    #rpy: [0., 0., 1.5708]
 
     #dynamics:
     #    addon: dynamics_randomizer
