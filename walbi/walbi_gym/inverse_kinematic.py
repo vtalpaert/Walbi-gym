@@ -56,7 +56,6 @@ class Walker(object):
         amplitude_z = 0.03
         z = -0.17  # base height
 
-        x = 0
         y = amplitude_y * m.sin(2*m.pi*p)
         z_up_left = 0
         z_up_right = 0
@@ -79,8 +78,8 @@ class Walker(object):
             x_left = delta_x * (1 + rate * (p - 0.3))
             x_right = delta_x * (1 + rate * (p - 0.8))
         action = np.empty(10, dtype=float)
-        action[:5] = calculator.calculate_joints_angle(x_right, y, z + z_up_right)  # right
-        action[5:] = calculator.calculate_joints_angle(x_left, y, z + z_up_left)  # left
+        action[:5] = self.calculate_joints_angle(x_right, y, z + z_up_right)  # right
+        action[5:] = self.calculate_joints_angle(x_left, y, z + z_up_left)  # left
         return action
 
     def walk(self, t, freq = 0.5, delta_x = 0.07):
