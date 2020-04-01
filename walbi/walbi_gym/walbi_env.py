@@ -198,13 +198,26 @@ def make_env():
 if __name__ == '__main__':
     from itertools import count
     import time
+    from inverse_kinematic import JointsAngleCalculator
 
     env = make_env()
+    dt = 1/240.
+    calculator = JointsAngleCalculator()
+
+    freq = 0.05
+    amplitude = 0.04
 
     observation = env.reset()
     print('action space', env.action_space.low, env.action_space.high)
-    for i in count(1):
-        action = np.array([0, -0.5, 1., -0.5, 0, 0, -0.5, 1., -0.5, 0])
+    for i in count(0):
+        t = i * dt
+        x = 0. + 0.03 * m.sin(2*m.pi*freq*t)
+        y = -0.05
+        z = -0.15 + 0.04 * m.cos(2*m.pi*freq*t)
+        action = np.empty(10, dtype=float)
+        action[:5] = calculator.calculate_joints_angle(x, y, z)  # right
+        action[5:] = calculator.calculate_joints_angle(x, -y, z)  # left
+        print(z, action)
         observation, reward, terminal, info = env.step(action)
 
         #if terminal:
