@@ -7,8 +7,9 @@ class Walker(object):
     """Calculates joints angle specifically for Walbi robot
     
     Assumptions:
-        The feet are always level with the hips
-        We only need to control three joints per feet to position the heel in space
+        The feet are always level with the hips, so two joints are deduced from the hip position
+        We only need to control three joints per foot to position the heel in space
+        We simplify the math by assuming the hip joints are at distance 0.
         The coordinates x, y, z are for the feet with respect to the hip joint, so z is always negative
         Output is RHX, RHY, RK, RFY, RFX, LHY, LHX, LK, LFX, LFY
     

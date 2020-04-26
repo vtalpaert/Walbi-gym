@@ -206,14 +206,19 @@ if __name__ == '__main__':
     freq = 0.5
 
     observation = env.reset()
-    for freq in [0.5, 0.4, 0.3, 0.2, 0.1]:
-        for i in count(0):
-            t = i * dt
-            percent = (freq*t)
-            if percent > 1:
-                break
-            action = walker.walk_one_period(percent, 0.07)
-            observation, reward, terminal, info = env.step(action)
+    #for freq in [0.5, 0.4, 0.3, 0.2, 0.1]:
+    #    for i in count(0):
+    #        t = i * dt
+    #        percent = (freq*t)
+    #        if percent > 1:
+    #            break
+    #        action = walker.walk_one_period(percent, 0.07)
+    #        observation, reward, terminal, info = env.step(action)
 
+    for i in count(0):
+        t = i * dt
+        action = walker.walk(t)
+        observation, reward, terminal, info = env.step(action)
+        print(reward)
         #if terminal:
         #    env.reset()
